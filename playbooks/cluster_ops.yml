@@ -1,13 +1,24 @@
 ---
-- name: Execute Pacemaker Cluster Operations and Health Audit
+- name: Execute Pacemaker Cluster Services Checks
   hosts: cluster_nodes
   become: yes
-  # Run tasks sequentially on nodes if needed, or all at once
-  serial: "{{ cluster_serial_count | default('100%') }}"
-
   tasks:
     - name: Pacemaker Operations
       block:
-        - name: Run Pacemaker Cluster Operations Role
+        - name: Run Pacemaker Cluster Operations Role - Services Audit
           ansible.builtin.include_role:
             name: pcs_cluster_operations
+          vars:
+            type: 'service_checks'
+
+- name: Execute Pacemaker Cluster Health Audit
+  hosts: nodeb
+  become: yes
+  tasks:
+    - name: Pacemaker Operations
+      block:
+        - name: Run Pacemaker Cluster Operations Role - Health Audit
+          ansible.builtin.include_role:
+            name: pcs_cluster_operations
+          vars:
+            type: 'cluster_checks'
