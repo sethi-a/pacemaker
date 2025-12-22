@@ -1,0 +1,13 @@
+---
+- name: Execute Pacemaker Cluster Operations and Health Audit
+  hosts: cluster_nodes
+  become: yes
+  # Run tasks sequentially on nodes if needed, or all at once
+  serial: "{{ cluster_serial_count | default('100%') }}"
+
+  tasks:
+    - name: Pacemaker Operations
+      block:
+        - name: Run Pacemaker Cluster Operations Role
+          ansible.builtin.include_role:
+            name: pcs_cluster_operations

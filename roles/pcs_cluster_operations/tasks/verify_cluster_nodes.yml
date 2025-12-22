@@ -1,0 +1,25 @@
+- name: Get detailed Cluster Status in XML
+  ansible.builtin.command: pcs status xml
+  register: cluster_xml_output
+  changed_when: false
+
+- name: Parse Node Health and Readiness
+  ansible.builtin.set_fact:
+    # Check if any node is offline
+    offline_nodes: "{{ cluster_xml_output.stdout | xpath('/pcs_state/nodes/node[@online=\"false\"]/@name') }}"
+    # Check if any node is in standby
+    standby_nodes: "{{ cluster_xml_output.stdout | xpath('/pcs_state/nodes/node[@standby=\"true\"]/@name') }}"
+    # Check if any node is marked as "lost" or "unclean"
+    unclean_nodes: "{{ cluster_xml_output.stdout | xpath('/pcs_state/nodes/node[@unclean=\"true\"]/@name') }}"
+
+- name: Verify all nodes are Healthy, Online, and Active
+  ansible.builtin.assert:
+    that:
+      - offline_nodes | length == 0
+      - standby_nodes | length == 0
+      - unclean_nodes | length == 0
+    fail_msg: |
+      Cluster Node Verification Failed:
+      - Offline Nodes: {{ offline_nodes | default('None') }}
+      - Standby Nodes: {{ standby_nodes | default('None') }}
+      - Unclean/Lost Nodes: {{ unclean_nodes | default('None') }}

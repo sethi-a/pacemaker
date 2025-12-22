@@ -1,0 +1,9 @@
+---
+- name: PCS Cluster Operations
+  block:
+    - name: Include verify cluster services tasks
+      ansible.builtin.include_tasks: verify_services.yml
+
+    - name: Include verify cluster nodes tasks
+      ansible.builtin.include_tasks: verify_cluster_nodes.yml
+
