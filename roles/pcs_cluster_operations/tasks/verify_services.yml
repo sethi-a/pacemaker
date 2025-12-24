@@ -6,9 +6,6 @@
   loop:
     - corosync
     - pacemaker
-  become: yes
-  become_user: root
-  become_method: sudo
 
 - name: Check for configuration files
   ansible.builtin.stat:
@@ -23,6 +20,3 @@
     that: item.stat.exists
     fail_msg: "Critical config file {{ item.item }} is missing!"
   loop: "{{ config_files.results }}"
-  become: yes
-  become_user: root
-  become_method: sudo
