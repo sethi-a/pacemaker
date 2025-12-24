@@ -9,14 +9,14 @@
       vars:
         check_type: 'service_checks'
 
-# - name: Execute Pacemaker Cluster Health Audit
-#   hosts: nodeb
-#   become: yes
-#   tasks:
-#     - name: Pacemaker Operations
-#       block:
-#         - name: Run Pacemaker Cluster Operations Role - Health Audit
-#           ansible.builtin.include_role:
-#             name: pcs_cluster_operations
-#           vars:
-#             type: 'cluster_checks'
+- name: Execute Pacemaker Cluster Health Audit
+  hosts: nodeb
+  become: yes
+  tasks:
+    - name: Pacemaker Operations
+      block:
+        - name: Run Pacemaker Cluster Operations Role - Health Audit
+          include_role:
+            name: pcs_cluster_operations
+          vars:
+            type: 'cluster_node_checks'

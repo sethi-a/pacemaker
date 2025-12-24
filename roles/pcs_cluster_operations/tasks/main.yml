@@ -5,3 +5,8 @@
       include_tasks: 
         file: 'verify_services.yml'
       when: check_type == 'service_checks'
+
+    - name: Include verify cluster services tasks
+      include_tasks: 
+        file: 'verify_cluster_nodes.yml'
+      when: check_type == 'cluster_node_checks'
