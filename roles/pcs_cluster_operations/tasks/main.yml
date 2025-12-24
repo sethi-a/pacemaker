@@ -1,28 +1,10 @@
 ---
 - name: PCS Cluster Operations
   block:
-    # - name: Include verify cluster services tasks
-    #   ansible.builtin.include_tasks: verify_services.yml
-    - name: Verify Pacemaker and Corosync services are running
-      ansible.builtin.service:
-        name: "{{ item }}"
-        state: started
-        enabled: yes
-      loop:
-        - corosync
-        - pacemaker
+    - name: Include verify cluster services tasks
+      ansible.builtin.include_tasks: verify_services.yml
+      when: type == 'service_checks'
 
-    - name: Check for configuration files
-      ansible.builtin.stat:
-        path: "{{ item }}"
-      loop:
-        - /etc/corosync/corosync.conf
-        - /var/lib/pacemaker/cib/cib.xml
-      register: config_files
-
-    - name: Fail if config files are missing
-      ansible.builtin.assert:
-        that: item.stat.exists
-        fail_msg: "Critical config file {{ item.item }} is missing!"
-      loop: "{{ config_files.results }}"
-
+    - name: Include verify cluster services tasks
+      ansible.builtin.include_tasks: verify_cluster_nodes.yml
+      when: type == 'cluster_checks'
