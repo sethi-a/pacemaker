@@ -3,4 +3,4 @@
   block:
     - name: Include verify cluster services tasks
       ansible.builtin.include_tasks: verify_services.yml
-      when: type == 'service_checks'
+      when: check_type == 'service_checks'

@@ -7,7 +7,7 @@
       include_role:
         name: pcs_cluster_operations
       vars:
-        type: 'service_checks'
+        check_type: 'service_checks'
 
 # - name: Execute Pacemaker Cluster Health Audit
 #   hosts: nodeb
