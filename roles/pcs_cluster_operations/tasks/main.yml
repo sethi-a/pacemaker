@@ -4,7 +4,3 @@
     - name: Include verify cluster services tasks
       ansible.builtin.include_tasks: verify_services.yml
       when: type == 'service_checks'
-
-    - name: Include verify cluster services tasks
-      ansible.builtin.include_tasks: verify_cluster_nodes.yml
-      when: type == 'cluster_checks'
