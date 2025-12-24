@@ -16,8 +16,6 @@
         - name: Run Pacemaker Cluster Operations Role - Services Audit
           ansible.builtin.include_role:
             name: pcs_cluster_operations
-          vars:
-            type: 'service_checks'
 
 # - name: Execute Pacemaker Cluster Health Audit
 #   hosts: nodeb
