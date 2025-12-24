@@ -19,4 +19,4 @@
           include_role:
             name: pcs_cluster_operations
           vars:
-            type: 'cluster_node_checks'
+            check_type: 'cluster_node_checks'
