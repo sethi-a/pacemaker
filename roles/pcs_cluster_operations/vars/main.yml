@@ -1,8 +1,0 @@
-ha_cluster_name: cluster2
-ha_nodes:
-  - nodeb.private.example.com
-  - nodec.private.example.com
-  - noded.private.example.com
-stonith_timeout: 180
-web_ip: 172.25.250.80
-web_mask: 24
