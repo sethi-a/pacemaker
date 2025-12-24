@@ -2,6 +2,6 @@
 - name: PCS Cluster Operations
   block:
     - name: Include verify cluster services tasks
-      ansible.builtin.include_tasks: 
+      include_tasks: 
         file: 'verify_services.yml'
       when: check_type == 'service_checks'
