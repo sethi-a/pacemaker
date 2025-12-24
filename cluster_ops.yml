@@ -1,0 +1,32 @@
+---
+- name: Execute Pacemaker Cluster Services Checks
+  hosts: nodes
+  become: yes
+  vars_files:
+    - passwords.yml
+  vars:
+    ha_cluster_name: cluster1
+    ha_nodes:
+      - nodea.private.example.com
+      - nodeb.private.example.com
+      - nodec.private.example.com
+  tasks:
+    - name: Pacemaker Operations
+      block:
+        - name: Run Pacemaker Cluster Operations Role - Services Audit
+          ansible.builtin.include_role:
+            name: pcs_cluster_operations
+          vars:
+            type: 'service_checks'
+
+# - name: Execute Pacemaker Cluster Health Audit
+#   hosts: nodeb
+#   become: yes
+#   tasks:
+#     - name: Pacemaker Operations
+#       block:
+#         - name: Run Pacemaker Cluster Operations Role - Health Audit
+#           ansible.builtin.include_role:
+#             name: pcs_cluster_operations
+#           vars:
+#             type: 'cluster_checks'
