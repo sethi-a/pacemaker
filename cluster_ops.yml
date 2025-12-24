@@ -14,7 +14,7 @@
     - name: Pacemaker Operations
       block:
         - name: Run Pacemaker Cluster Operations Role - Services Audit
-          ansible.builtin.include_role:
+          ansible.builtin.import_role:
             name: pcs_cluster_operations
 
 # - name: Execute Pacemaker Cluster Health Audit
