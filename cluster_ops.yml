@@ -13,9 +13,31 @@
   tasks:
     - name: Pacemaker Operations
       block:
-        - name: Run Pacemaker Cluster Operations Role - Services Audit
-          ansible.builtin.include_role:
-            name: pcs_cluster_operations
+        # - name: Run Pacemaker Cluster Operations Role - Services Audit
+        #   ansible.builtin.include_role:
+        #     name: pcs_cluster_operations
+        - name: Verify Pacemaker and Corosync services are running
+          ansible.builtin.service:
+            name: "{{ item }}"
+            state: started
+            enabled: yes
+          loop:
+            - corosync
+            - pacemaker
+
+        - name: Check for configuration files
+          ansible.builtin.stat:
+            path: "{{ item }}"
+          loop:
+            - /etc/corosync/corosync.conf
+            - /var/lib/pacemaker/cib/cib.xml
+          register: config_files
+
+        - name: Fail if config files are missing
+          ansible.builtin.assert:
+            that: item.stat.exists
+            fail_msg: "Critical config file {{ item.item }} is missing!"
+          loop: "{{ config_files.results }}"
 
 # - name: Execute Pacemaker Cluster Health Audit
 #   hosts: nodeb
