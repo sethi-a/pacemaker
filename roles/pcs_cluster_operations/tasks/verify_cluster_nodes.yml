@@ -1,25 +1,23 @@
 - name: Get detailed Cluster Status in XML
-  command: pcs status xml
-  register: cluster_xml_output
+  command:
+    cmd: pcs status xml
+  register: cluster_xml_raw
   changed_when: false
 
-- name: Parse Node Health and Readiness
-  set_fact:
-    # Check if any node is offline
-    offline_nodes: "{{ cluster_xml_output.stdout | xpath('/pcs_state/nodes/node[@online=\"false\"]/@name') }}"
-    # Check if any node is in standby
-    standby_nodes: "{{ cluster_xml_output.stdout | xpath('/pcs_state/nodes/node[@standby=\"true\"]/@name') }}"
-    # Check if any node is marked as "lost" or "unclean"
-    unclean_nodes: "{{ cluster_xml_output.stdout | xpath('/pcs_state/nodes/node[@unclean=\"true\"]/@name') }}"
+- name: Identify specific unhealthy nodes
+  ansible.builtin.set_fact:
+    offline_node_list: "{{ cluster_xml_raw.stdout | regex_findall('node name=\"([^\"]+)\" [^>]*online=\"false\"') }}"
+    standby_node_list: "{{ cluster_xml_raw.stdout | regex_findall('node name=\"([^\"]+)\" [^>]*standby=\"true\"') }}"
+    unclean_node_list: "{{ cluster_xml_raw.stdout | regex_findall('node name=\"([^\"]+)\" [^>]*unclean=\"true\"') }}"
 
-- name: Verify all nodes are Healthy, Online, and Active
-  assert:
+- name: Verify Cluster Node Health
+  ansible.builtin.assert:
     that:
-      - offline_nodes | length == 0
-      - standby_nodes | length == 0
-      - unclean_nodes | length == 0
+      - offline_node_list | length == 0
+      - standby_node_list | length == 0
+      - unclean_node_list | length == 0
     fail_msg: |
-      Cluster Node Verification Failed:
-      - Offline Nodes: {{ offline_nodes | default('None') }}
-      - Standby Nodes: {{ standby_nodes | default('None') }}
-      - Unclean/Lost Nodes: {{ unclean_nodes | default('None') }}
+      CLUSTER HEALTH ALERT:
+      The following nodes are OFFLINE: "{{ offline_node_list | default(['None']) | join(', ') }}"
+      The following nodes are in STANDBY: "{{ standby_node_list | default(['None']) | join(', ') }}"
+      The following nodes are UNCLEAN/LOST: "{{ unclean_node_list | default(['None']) | join(', ') }}"
