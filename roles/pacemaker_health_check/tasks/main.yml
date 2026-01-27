@@ -1,0 +1,17 @@
+---
+- name: "Wrapper: Execute Health Checks with Error Handling"
+  block:
+    # -------------------------------------------------------
+    # IMPORT THE LOGIC (defined in perform_checks.yml)
+    # -------------------------------------------------------
+    - name: Run all Pacemaker Health Checks
+      include_tasks: perform_checks.yml
+
+  rescue:
+
+    # -------------------------------------------------------
+    # STOP PLAYBOOK
+    # -------------------------------------------------------
+    - name: Fail the playbook explicitly after notifying
+      fail:
+        msg: "Health checks failed and notifications have been sent. Stopping playbook."

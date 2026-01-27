@@ -1,4 +1,4 @@
-[nodes]
+[cluster_nodes]
 nodeb
 nodec
 nodea

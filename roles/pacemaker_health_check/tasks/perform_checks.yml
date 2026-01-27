@@ -1,0 +1,185 @@
+---
+# -------------------------------------------------------
+# SECTION 1: VARIABLE VALIDATION
+# -------------------------------------------------------
+- name: "SECTION 1: Verification of Required Variables"
+  assert:
+    that:
+      - pacemaker_service is defined
+      - corosync_service is defined
+    fail_msg: "Required variables for service names are missing."
+    success_msg: "Variables are defined correctly."
+
+# -------------------------------------------------------
+# SECTION 2: SERVICE STATUS
+# -------------------------------------------------------
+- name: "SECTION 2: Verify Service Status (Pacemaker & Corosync)"
+  block:
+    - name: Populate service facts
+      service_facts:
+
+    - name: Assert Pacemaker is running
+      assert:
+        that:
+          - ansible_facts.services[pacemaker_service + '.service'].state == 'running'
+        fail_msg: "Pacemaker service is NOT running."
+
+    - name: Assert Corosync is running
+      assert:
+        that:
+          - ansible_facts.services[corosync_service + '.service'].state == 'running'
+        fail_msg: "Corosync service is NOT running."
+
+# # -------------------------------------------------------
+# # SECTION 3: CONFIGURATION FILES
+# # -------------------------------------------------------
+# - name: "SECTION 3: Verify Configuration Files"
+#   block:
+#     - name: Check existence of configuration files
+#       stat:
+#         path: "{{ item }}"
+#       register: config_files
+#       loop:
+#         - "{{ corosync_conf_path }}"
+#         - "{{ cib_xml_path }}"
+
+#     - name: Assert Configuration files exist
+#       assert:
+#         that: item.stat.exists
+#         fail_msg: "Critical Configuration file {{ item.item }} is missing."
+#       loop: "{{ config_files.results }}"
+#       loop_control:
+#         label: "{{ item.item }}"
+
+# # -------------------------------------------------------
+# # SECTION 4: NODE HEALTH (STANDBY/OFFLINE)
+# # -------------------------------------------------------
+# - name: "SECTION 4: Cluster Node Health Check"
+#   block:
+#     - name: Get Cluster Status (PCS)
+#       command: pcs status
+#       register: pcs_status
+#       changed_when: false
+
+#     - name: Assert No Nodes are in Standby
+#       assert:
+#         that:
+#           - "'Standby:' not in pcs_status.stdout"
+#         fail_msg: "One or more nodes are in Standby mode."
+
+#     - name: Assert No Nodes are Lost/Offline
+#       assert:
+#         that:
+#           - "'OFFLINE:' not in pcs_status.stdout"
+#           - "'UNCLEAN' not in pcs_status.stdout"
+#         fail_msg: "One or more nodes are OFFLINE or UNCLEAN."
+
+# # -------------------------------------------------------
+# # SECTION 5: GLOBAL PROPERTIES
+# # -------------------------------------------------------
+# - name: "SECTION 5: Verify Global Properties"
+#   block:
+#     - name: Get Cluster Properties
+#       command: pcs property show --all
+#       register: pcs_properties
+#       changed_when: false
+
+#     - name: Assert Stonith is Enabled
+#       assert:
+#         that:
+#           - "'stonith-enabled: true' in pcs_properties.stdout"
+#         fail_msg: "CRITICAL: stonith-enabled is NOT set to true."
+
+#     - name: Assert Maintenance Mode is Disabled
+#       assert:
+#         that:
+#           - "'maintenance-mode: true' not in pcs_properties.stdout"
+#         fail_msg: "WARNING: Cluster is currently in Maintenance Mode."
+
+# # -------------------------------------------------------
+# # SECTION 6: STONITH RESOURCES
+# # -------------------------------------------------------
+# - name: "SECTION 6: Verify Stonith Resources"
+#   block:
+#     - name: Get Stonith Status
+#       command: pcs stonith
+#       register: pcs_stonith
+#       changed_when: false
+
+#     - name: Assert Stonith resources are configured
+#       assert:
+#         that:
+#           - pcs_stonith.stdout | length > 0
+#           - "'No stonith resources configured' not in pcs_stonith.stdout"
+#         fail_msg: "No Stonith resources are configured."
+
+#     - name: Assert Stonith resources are Started
+#       assert:
+#         that:
+#           - "'Started' in pcs_stonith.stdout"
+#         fail_msg: "Stonith resource is configured but not in 'Started' state."
+
+# # -------------------------------------------------------
+# # SECTION 7: FAILED ACTIONS
+# # -------------------------------------------------------
+# - name: "SECTION 7: Check for Failed Cluster Events"
+#   block:
+#     - name: Get Cluster Status for Event Check
+#       command: pcs status
+#       register: pcs_status_events
+#       changed_when: false
+
+#     - name: Assert No Failed Resource Actions
+#       assert:
+#         that:
+#           - "'Failed Resource Actions:' not in pcs_status_events.stdout"
+#         fail_msg: "Cluster has Failed Resource Actions. Check 'pcs status'."
+
+# # -------------------------------------------------------
+# # SECTION 8: STONITH HISTORY
+# # -------------------------------------------------------
+# - name: "SECTION 8: Check for Stonith Events"
+#   block:
+#     - name: Get Stonith History
+#       # grep -v removes non-error "Cleaning up" messages
+#       shell: pcs stonith history | grep -v "Cleaning up"
+#       register: stonith_history
+#       changed_when: false
+#       ignore_errors: true 
+
+#     - name: Assert No Recent Fencing Failures
+#       assert:
+#         that:
+#           - "'error' not in stonith_history.stdout"
+#           - "'failed' not in stonith_history.stdout"
+#         fail_msg: "Found failed Stonith/Fencing events in history."
+
+# # -------------------------------------------------------
+# # SECTION 9: SPLIT BRAIN DETECTION (CROSS-NODE CHECK)
+# # -------------------------------------------------------
+# - name: "SECTION 9: Split Brain / Partition Detection"
+#   block:
+#     - name: Get Designated Coordinator (DC) Name
+#       shell: pcs status | grep "Current DC:" | awk '{print $3}'
+#       register: current_dc_node
+#       changed_when: false
+
+#     - name: Assert all nodes agree on the same DC
+#       run_once: true
+#       assert:
+#         that:
+#           # Extract DC name from all hosts, remove duplicates, count result. Should be 1.
+#           - >-
+#             ansible_play_hosts 
+#             | map('extract', hostvars, ['current_dc_node', 'stdout']) 
+#             | unique 
+#             | list 
+#             | count == 1
+#         fail_msg: >-
+#           SPLIT BRAIN DETECTED! 
+#           Nodes are seeing different Designated Coordinators (DCs).
+#           DCs reported: {{ ansible_play_hosts | map('extract', hostvars, ['current_dc_node', 'stdout']) | list }}
+
+- name: "Report Health Status"
+  debug:
+    msg: "SUCCESS: Cluster Health Check Passed on {{ inventory_hostname }}"

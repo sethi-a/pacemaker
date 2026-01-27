@@ -1,0 +1,9 @@
+---
+# -----------------------------------------------------------------------
+# Service & Configuration Defaults
+# -----------------------------------------------------------------------
+pacemaker_service: "pacemaker"
+corosync_service: "corosync"
+
+corosync_conf_path: "/etc/corosync/corosync.conf"
+cib_xml_path: "/var/lib/pacemaker/cib/cib.xml"
