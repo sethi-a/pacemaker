@@ -11,7 +11,7 @@
 
     - name: Summary of errors across all nodes
       ansible.builtin.debug:
-        msg: "Host {{ item }} reported these errors: {{ hostvars[item] }}"
+        msg: "Host {{ item }} reported these errors: {{ hostvars[item]['health_check_errors'] }}"
       loop: "{{ ansible_play_hosts }}"
       run_once: true
 

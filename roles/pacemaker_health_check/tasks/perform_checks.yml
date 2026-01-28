@@ -13,7 +13,7 @@
   rescue:
     - name: Record Failure (Section 1)
       set_fact:
-        health_check_errors: "{{ health_check_errors + ['SECTION 1: ' + ansible_failed_result.msg] }}"
+        health_check_errors: "{{ health_check_errors + [ansible_failed_result.msg | default('Unknown error')] }}"
         
 # -------------------------------------------------------
 # SECTION 2: SERVICE STATUS
@@ -35,7 +35,7 @@
   rescue:
     - name: Record Failure (Section 2)
       ansible.builtin.set_fact:
-        health_check_errors: "{{ health_check_errors + ['SECTION 2: ' + ansible_failed_result.msg] }}"
+        health_check_errors: "{{ health_check_errors + [ansible_failed_result.msg | default('Unknown error')] }}"
 
 # -------------------------------------------------------
 # SECTION 3: CONFIGURATION FILES
@@ -60,7 +60,7 @@
   rescue:
     - name: Record Failure (Section 3)
       ansible.builtin.set_fact:
-        health_check_errors: "{{ health_check_errors + ['SECTION 3: ' + ansible_failed_result.msg] }}"
+        health_check_errors: "{{ health_check_errors + [ansible_failed_result.msg | default('Unknown error')] }}"
 
 # -------------------------------------------------------
 # SECTION 4: NODE HEALTH
@@ -82,4 +82,4 @@
   rescue:
     - name: Record Failure (Section 4)
       ansible.builtin.set_fact:
-        health_check_errors: "{{ health_check_errors + ['SECTION 4: ' + ansible_failed_result.msg] }}"
+        health_check_errors: "{{ health_check_errors + [ansible_failed_result.msg | default('Unknown error')] }}"
