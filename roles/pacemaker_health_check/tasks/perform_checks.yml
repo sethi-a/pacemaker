@@ -14,33 +14,39 @@
 # SECTION 2: SERVICE STATUS
 # -------------------------------------------------------
 
-- name: "Debug: Print Service Status found in Facts"
-  ansible.builtin.debug:
-    msg: >-
-      Service '{{ item }}.service': 
-      {{ ansible_facts.services[item + '.service'].state | default('NOT INSTALLED / NOT FOUND') }}
-  loop:
-    - "{{ pacemaker_service }}"
-    - "{{ corosync_service }}"
-  loop_control:
-    label: "{{ item }}"
-
 - name: "SECTION 2: Verify Service Status (Pacemaker & Corosync)"
   block:
     - name: Populate service facts
       service_facts:
 
-    - name: Assert Pacemaker is running
+    - name: "Debug: Print Service Status found in Facts"
+      ansible.builtin.debug:
+        msg: >-
+          Service '{{ item }}.service': 
+          {{ ansible_facts.services[item + '.service'].state | default('NOT INSTALLED / NOT FOUND') }}
+      loop:
+        - "{{ pacemaker_service }}"
+        - "{{ corosync_service }}"
+      loop_control:
+        label: "{{ item }}"
+      
+    # 2. VALIDATE: Check existence AND state safely
+    - name: "Assert Services are Installed and Running"
       assert:
         that:
-          - ansible_facts.services[pacemaker_service + '.service'].state == 'running'
-        fail_msg: "Pacemaker service is NOT running."
-
-    - name: Assert Corosync is running
-      assert:
-        that:
-          - ansible_facts.services[corosync_service + '.service'].state == 'running'
-        fail_msg: "Corosync service is NOT running."
+          # First, ensure the key actually exists in the facts dictionary
+          - "(item + '.service') in ansible_facts.services"
+          # Second, check the state
+          - "ansible_facts.services[item + '.service'].state == 'running'"
+        fail_msg: >-
+          CRITICAL: Service '{{ item }}.service' is 
+          {{ ansible_facts.services[item + '.service'].state | default('MISSING') }}. 
+          It must be 'running'.
+      loop:
+        - "{{ pacemaker_service }}"
+        - "{{ corosync_service }}"
+      loop_control:
+        label: "{{ item }}"
 
 # # -------------------------------------------------------
 # # SECTION 3: CONFIGURATION FILES
