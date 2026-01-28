@@ -83,3 +83,7 @@
     - name: Record Failure (Section 4)
       ansible.builtin.set_fact:
         health_check_errors: "{{ health_check_errors + ['SECTION 4: ' + ansible_failed_result.msg] }}"
+
+- name: "Debug: Verify Captured Errors on Node"
+  debug:
+    msg: "Node {{ inventory_hostname }} has {{ health_check_errors | length }} errors: {{ health_check_errors }}"
