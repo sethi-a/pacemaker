@@ -13,6 +13,18 @@
 # -------------------------------------------------------
 # SECTION 2: SERVICE STATUS
 # -------------------------------------------------------
+
+- name: "Debug: Print Service Status found in Facts"
+  ansible.builtin.debug:
+    msg: >-
+      Service '{{ item }}.service': 
+      {{ ansible_facts.services[item + '.service'].state | default('NOT INSTALLED / NOT FOUND') }}
+  loop:
+    - "{{ pacemaker_service }}"
+    - "{{ corosync_service }}"
+  loop_control:
+    label: "{{ item }}"
+
 - name: "SECTION 2: Verify Service Status (Pacemaker & Corosync)"
   block:
     - name: Populate service facts
