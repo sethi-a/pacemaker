@@ -3,12 +3,64 @@
   # This include will now run to completion, because internal tasks catch their own errors.
   include_tasks: perform_checks.yml
 
-- name: "Consolidated Error Reporting"
+# -------------------------------------------------------
+# CONSOLIDATED REPORTING (Runs once on Localhost)
+# -------------------------------------------------------
+- name: "Generate and Display Cluster Report"
+  run_once: true
+  delegate_to: localhost
+  vars:
+    # Logic to detect if ANY node in the cluster failed
+    cluster_has_failures: >-
+      {{ 
+        ansible_play_hosts 
+        | map('extract', hostvars, 'health_check_errors') 
+        | map('length') 
+        | sum > 0 
+      }}
   block:
+    # 1. Build a text report using Jinja2
+    - name: Build Report String
+      set_fact:
+        final_report: |
+          =============================================================
+          PACEMAKER CLUSTER HEALTH REPORT
+          =============================================================
+          Timestamp: {{ ansible_date_time.iso8601 }}
+          Total Nodes Checked: {{ ansible_play_hosts | length }}
+          
+          DETAILS BY NODE:
+          {% for host in ansible_play_hosts %}
+          -------------------------------------------------------------
+          NODE: {{ host }}
+          {% if hostvars[host]['health_check_errors'] | default([]) | length == 0 %}
+          STATUS: [ OK ]
+          {% else %}
+          STATUS: [ FAILED ]
+          ERRORS:
+          {% for err in hostvars[host]['health_check_errors'] %}
+            - {{ err }}
+          {% endfor %}
+          {% endif %}
+          {% endfor %}
+          =============================================================
+
+    # 2. Print the report to the Ansible Console
+    - name: "PRINT CONSOLIDATED REPORT"
+      debug:
+        msg: "{{ final_report.split('\n') }}"
+
+    # 3. (Optional) Save the report to a file on the Ansible Server
+    - name: Save Report to File
+      copy:
+        content: "{{ final_report }}"
+        dest: "/tmp/pacemaker_health_report_{{ ansible_date_time.date }}.txt"
+      delegate_to: localhost
+
     # -------------------------------------------------------
-    # FINAL PLAYBOOK FAILURE
+    # FINAL FAILURE
     # -------------------------------------------------------
-    - name: Fail the playbook if errors were detected
+    - name: Fail Playbook if Critical Errors Exists
       fail:
-        msg: "Health Check failed with {{ health_check_errors | length }} errors. See above for details."
-      when: health_check_errors | length > 0
+        msg: "Cluster Health Check Failed. See the 'PRINT CONSOLIDATED REPORT' task above for details."
+      when: cluster_has_failures | bool
