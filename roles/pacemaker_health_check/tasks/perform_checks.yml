@@ -10,11 +10,16 @@
           - pacemaker_service is defined
           - corosync_service is defined
         fail_msg: "Required variables for service names are missing."
-  rescue:
-    - name: Record Failure (Section 1)
+      register: var_check_result
+      ignore_errors: true
+
+    - name: Record Variable Failures
       set_fact:
-        health_check_errors: "{{ health_check_errors + [ansible_failed_result.msg | default('Unknown error')] }}"
-        
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 1: ' + item.msg] }}"
+      loop: "{{ var_check_result.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: item.failed | bool
 # -------------------------------------------------------
 # SECTION 2: SERVICE STATUS
 # -------------------------------------------------------
@@ -97,7 +102,7 @@
       register: node_health_results
       ignore_errors: true
 
-  - name: Record Node Health Failures
+    - name: Record Node Health Failures
       set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 4: ' + item.msg] }}"
       loop: "{{ node_health_results.results }}"
