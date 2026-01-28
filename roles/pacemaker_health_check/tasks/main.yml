@@ -4,14 +4,6 @@
   include_tasks: perform_checks.yml
 
 # -------------------------------------------------------
-# VERIFY DATA (DEBUGGING)
-# -------------------------------------------------------
-# This proves the variable is set ON THE NODE before we try to read it from localhost
-- name: "Debug: Verify Captured Errors on Node"
-  debug:
-    msg: "Node {{ inventory_hostname }} has {{ hostvars[inventory_hostname]['health_check_errors'] | length }} errors: {{ hostvars[inventory_hostname]['health_check_errors'] }}"
-
-# -------------------------------------------------------
 # CONSOLIDATED REPORTING (Runs once on Localhost)
 # -------------------------------------------------------
 - name: "Generate and Display Cluster Report"

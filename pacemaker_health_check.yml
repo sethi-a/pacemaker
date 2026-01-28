@@ -4,10 +4,5 @@
   become: true
   gather_facts: true
   
-  pre_tasks:
-    - name: Initialize Health Check Error List
-      set_fact:
-        health_check_errors: []
-
   roles:
-    - role: pacemaker_health_check
+    - pacemaker_health_check
