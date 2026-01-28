@@ -4,5 +4,8 @@
   become: true
   gather_facts: true
   
+  vars:
+    health_check_errors: []
+    
   roles:
     - role: pacemaker_health_check
