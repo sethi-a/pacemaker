@@ -89,11 +89,14 @@
       register: pcs_status
       changed_when: false
 
+    - name: Record Critical PCS Failure
+      set_fact:
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 4: Critical - Unable to retrieve cluster status. Error: ' + pcs_status.stderr | default('Command failed')] }}"
+      when: pcs_status.failed | bool
+
     - name: Assert Node Health States
       assert:
         that:
-          # We fail if the 'pattern' exists in the stdout
-          -  pcs_status.stdout is defined
           - "item.pattern not in pcs_status.stdout | default([])"
         fail_msg: "{{ item.msg }}"
       loop:
@@ -102,6 +105,9 @@
         - { pattern: 'UNCLEAN',  msg: 'One or more nodes are UNCLEAN.' }
       register: node_health_results
       ignore_errors: true
+      when: 
+        - not pcs_status.failed | bool
+        - pcs_status.stdout is defined
 
     - name: Record Node Health Failures
       set_fact:
@@ -109,4 +115,6 @@
       loop: "{{ node_health_results.results | default([]) }}"
       loop_control:
         label: "{{ item.item.pattern }}"
-      when: item.failed | bool
+      when: 
+        - not pcs_status.failed | bool
+        - item.failed | bool
