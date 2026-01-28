@@ -32,10 +32,16 @@
       loop:
         - "{{ pacemaker_service }}"
         - "{{ corosync_service }}"
-  rescue:
-    - name: Record Failure (Section 2)
-      ansible.builtin.set_fact:
-        health_check_errors: "{{ health_check_errors + [ansible_failed_result.msg | default('Unknown error')] }}"
+      register: service_check_result
+      ignore_errors: true
+
+    - name: Record Service Failures
+      set_fact:
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 2: ' + item.msg] }}"
+      loop: "{{ service_check_result.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: item.failed | bool
 
 # -------------------------------------------------------
 # SECTION 3: CONFIGURATION FILES
@@ -57,10 +63,16 @@
       loop: "{{ config_files.results }}"
       loop_control:
         label: "{{ item.item }}"
-  rescue:
-    - name: Record Failure (Section 3)
-      ansible.builtin.set_fact:
-        health_check_errors: "{{ health_check_errors + [ansible_failed_result.msg | default('Unknown error')] }}"
+      register: file_check_result
+      ignore_errors: true
+
+    - name: Record File Failures
+      set_fact:
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 3: ' + item.msg] }}"
+      loop: "{{ file_check_result.results }}"
+      loop_control:
+        label: "{{ item.item.item }}" # Nested item structure due to previous loop
+      when: item.failed | bool
 
 # -------------------------------------------------------
 # SECTION 4: NODE HEALTH
@@ -72,14 +84,23 @@
       register: pcs_status
       changed_when: false
 
-    - name: Assert Nodes Healthy
-      ansible.builtin.assert:
+    - name: Assert Node Health States
+      assert:
         that:
-          - "'Standby:' not in pcs_status.stdout"
-          - "'OFFLINE:' not in pcs_status.stdout"
-          - "'UNCLEAN' not in pcs_status.stdout"
-        fail_msg: "Nodes are in Standby, Offline, or Unclean state."
-  rescue:
-    - name: Record Failure (Section 4)
-      ansible.builtin.set_fact:
-        health_check_errors: "{{ health_check_errors + [ansible_failed_result.msg | default('Unknown error')] }}"
+          # We fail if the 'pattern' exists in the stdout
+          - "item.pattern not in pcs_status.stdout"
+        fail_msg: "{{ item.msg }}"
+      loop:
+        - { pattern: 'Standby:', msg: 'One or more nodes are in Standby mode.' }
+        - { pattern: 'OFFLINE:', msg: 'One or more nodes are OFFLINE.' }
+        - { pattern: 'UNCLEAN',  msg: 'One or more nodes are UNCLEAN.' }
+      register: node_health_results
+      ignore_errors: true
+
+  - name: Record Node Health Failures
+      set_fact:
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 4: ' + item.msg] }}"
+      loop: "{{ node_health_results.results }}"
+      loop_control:
+        label: "{{ item.item.pattern }}"
+      when: item.failed | bool
