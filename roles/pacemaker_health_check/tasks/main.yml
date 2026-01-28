@@ -1,18 +1,14 @@
 ---
-- name: "Wrapper: Execute Health Checks with Error Handling"
+- name: "Wrapper: Execute Health Checks"
+  # This include will now run to completion, because internal tasks catch their own errors.
+  include_tasks: perform_checks.yml
+
+- name: "Consolidated Error Reporting"
   block:
     # -------------------------------------------------------
-    # IMPORT THE LOGIC (defined in perform_checks.yml)
+    # FINAL PLAYBOOK FAILURE
     # -------------------------------------------------------
-    - name: Run all Pacemaker Health Checks
-      include_tasks: perform_checks.yml
-      ignore_errors: true
-
-  rescue:
-
-    # -------------------------------------------------------
-    # STOP PLAYBOOK
-    # -------------------------------------------------------
-    - name: Fail the playbook explicitly after notifying
+    - name: Fail the playbook if errors were detected
       fail:
-        msg: "Health checks failed and notifications have been sent. Stopping playbook."
+        msg: "Health Check failed with {{ health_check_errors | length }} errors. See above for details."
+      when: health_check_errors | length > 0

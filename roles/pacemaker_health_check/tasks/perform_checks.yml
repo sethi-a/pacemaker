@@ -1,41 +1,46 @@
----
+# Initialize the error list if not already defined
+- name: "Initialize Failure Accumulator"
+  set_fact:
+    health_check_errors: []
+  when: health_check_errors is not defined
+
 # -------------------------------------------------------
 # SECTION 1: VARIABLE VALIDATION
 # -------------------------------------------------------
 - name: "SECTION 1: Verification of Required Variables"
-  assert:
-    that:
-      - pacemaker_service is defined
-      - corosync_service is defined
-    fail_msg: "Required variables for service names are missing."
-    success_msg: "Variables are defined correctly."
+  block:
+    - name: Assert Variables are defined
+      ansible.builtin.assert:
+        that:
+          - pacemaker_service is defined
+          - corosync_service is defined
+        fail_msg: "Required variables for service names are missing."
+  rescue:
+    - name: Record Failure (Section 1)
+      set_fact:
+        health_check_errors: "{{ health_check_errors + ['SECTION 1: ' + ansible_failed_result.msg] }}"
 
 # -------------------------------------------------------
 # SECTION 2: SERVICE STATUS
 # -------------------------------------------------------
-
-- name: "SECTION 2: Verify Service Status (Pacemaker & Corosync)"
+- name: "SECTION 2: Verify Service Status"
   block:
     - name: Populate service facts
       ansible.builtin.service_facts:
-      
-    # 2. VALIDATE: Check existence AND state safely
-    - name: "Assert Services are Installed and Running"
+
+    - name: Assert Services are Running
       ansible.builtin.assert:
         that:
-          # First, ensure the key actually exists in the facts dictionary
           - "(item + '.service') in ansible_facts.services"
-          # Second, check the state
           - "ansible_facts.services[item + '.service'].state == 'running'"
-        fail_msg: >-
-          CRITICAL: Service '{{ item }}.service' is 
-          {{ ansible_facts.services[item + '.service'].state | default('MISSING') }}. 
-          It must be 'running'.
+        fail_msg: "Service '{{ item }}' is not running."
       loop:
         - "{{ pacemaker_service }}"
         - "{{ corosync_service }}"
-      loop_control:
-        label: "{{ item }}"
+  rescue:
+    - name: Record Failure (Section 2)
+      ansible.builtin.set_fact:
+        health_check_errors: "{{ health_check_errors + ['SECTION 2: ' + ansible_failed_result.msg] }}"
 
 # -------------------------------------------------------
 # SECTION 3: CONFIGURATION FILES
@@ -53,13 +58,17 @@
     - name: Assert Configuration files exist
       ansible.builtin.assert:
         that: item.stat.exists
-        fail_msg: "Critical Configuration file {{ item.item }} is missing."
+        fail_msg: "Configuration file {{ item.item }} is missing."
       loop: "{{ config_files.results }}"
       loop_control:
         label: "{{ item.item }}"
+  rescue:
+    - name: Record Failure (Section 3)
+      ansible.builtin.set_fact:
+        health_check_errors: "{{ health_check_errors + ['SECTION 3: ' + ansible_failed_result.msg] }}"
 
 # -------------------------------------------------------
-# SECTION 4: NODE HEALTH (STANDBY/OFFLINE)
+# SECTION 4: NODE HEALTH
 # -------------------------------------------------------
 - name: "SECTION 4: Cluster Node Health Check"
   block:
@@ -68,121 +77,14 @@
       register: pcs_status
       changed_when: false
 
-    - name: Assert No Nodes are in Standby
+    - name: Assert Nodes Healthy
       ansible.builtin.assert:
         that:
           - "'Standby:' not in pcs_status.stdout"
-        fail_msg: "One or more nodes are in Standby mode."
-
-    - name: Assert No Nodes are Lost/Offline
-      ansible.builtin.assert:
-        that:
           - "'OFFLINE:' not in pcs_status.stdout"
           - "'UNCLEAN' not in pcs_status.stdout"
-        fail_msg: "One or more nodes are OFFLINE or UNCLEAN."
-
-# # -------------------------------------------------------
-# # SECTION 5: GLOBAL PROPERTIES
-# # -------------------------------------------------------
-# - name: "SECTION 5: Verify Global Properties"
-#   block:
-#     - name: Get Cluster Properties
-#       command: pcs property show --all
-#       register: pcs_properties
-#       changed_when: false
-
-#     - name: Assert Stonith is Enabled
-#       assert:
-#         that:
-#           - "'stonith-enabled: true' in pcs_properties.stdout"
-#         fail_msg: "CRITICAL: stonith-enabled is NOT set to true."
-
-#     - name: Assert Maintenance Mode is Disabled
-#       assert:
-#         that:
-#           - "'maintenance-mode: true' not in pcs_properties.stdout"
-#         fail_msg: "WARNING: Cluster is currently in Maintenance Mode."
-
-# # -------------------------------------------------------
-# # SECTION 6: STONITH RESOURCES
-# # -------------------------------------------------------
-# - name: "SECTION 6: Verify Stonith Resources"
-#   block:
-#     - name: Get Stonith Status
-#       command: pcs stonith
-#       register: pcs_stonith
-#       changed_when: false
-
-#     - name: Assert Stonith resources are configured
-#       assert:
-#         that:
-#           - pcs_stonith.stdout | length > 0
-#           - "'No stonith resources configured' not in pcs_stonith.stdout"
-#         fail_msg: "No Stonith resources are configured."
-
-#     - name: Assert Stonith resources are Started
-#       assert:
-#         that:
-#           - "'Started' in pcs_stonith.stdout"
-#         fail_msg: "Stonith resource is configured but not in 'Started' state."
-
-# # -------------------------------------------------------
-# # SECTION 7: FAILED ACTIONS
-# # -------------------------------------------------------
-# - name: "SECTION 7: Check for Failed Cluster Events"
-#   block:
-#     - name: Get Cluster Status for Event Check
-#       command: pcs status
-#       register: pcs_status_events
-#       changed_when: false
-
-#     - name: Assert No Failed Resource Actions
-#       assert:
-#         that:
-#           - "'Failed Resource Actions:' not in pcs_status_events.stdout"
-#         fail_msg: "Cluster has Failed Resource Actions. Check 'pcs status'."
-
-# # -------------------------------------------------------
-# # SECTION 8: STONITH HISTORY
-# # -------------------------------------------------------
-# - name: "SECTION 8: Check for Stonith Events"
-#   block:
-#     - name: Get Stonith History
-#       # grep -v removes non-error "Cleaning up" messages
-#       shell: pcs stonith history | grep -v "Cleaning up"
-#       register: stonith_history
-#       changed_when: false
-#       ignore_errors: true 
-
-#     - name: Assert No Recent Fencing Failures
-#       assert:
-#         that:
-#           - "'error' not in stonith_history.stdout"
-#           - "'failed' not in stonith_history.stdout"
-#         fail_msg: "Found failed Stonith/Fencing events in history."
-
-# # -------------------------------------------------------
-# # SECTION 9: SPLIT BRAIN DETECTION (CROSS-NODE CHECK)
-# # -------------------------------------------------------
-# - name: "SECTION 9: Split Brain / Partition Detection"
-#   block:
-#     - name: Get Designated Coordinator (DC) Name
-#       shell: pcs status | grep "Current DC:" | awk '{print $3}'
-#       register: current_dc_node
-#       changed_when: false
-
-#     - name: Assert all nodes agree on the same DC
-#       run_once: true
-#       assert:
-#         that:
-#           # Extract DC name from all hosts, remove duplicates, count result. Should be 1.
-#           - >-
-#             ansible_play_hosts 
-#             | map('extract', hostvars, ['current_dc_node', 'stdout']) 
-#             | unique 
-#             | list 
-#             | count == 1
-#         fail_msg: >-
-#           SPLIT BRAIN DETECTED! 
-#           Nodes are seeing different Designated Coordinators (DCs).
-#           DCs reported: {{ ansible_play_hosts | map('extract', hostvars, ['current_dc_node', 'stdout']) | list }}
+        fail_msg: "Nodes are in Standby, Offline, or Unclean state."
+  rescue:
+    - name: Record Failure (Section 4)
+      ansible.builtin.set_fact:
+        health_check_errors: "{{ health_check_errors + ['SECTION 4: ' + ansible_failed_result.msg] }}"
