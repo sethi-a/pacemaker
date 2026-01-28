@@ -1,7 +1,19 @@
 ---
+- name: "Initialize Health Check Error List"
+  set_fact:
+    health_check_errors: []
+
 - name: "Wrapper: Execute Health Checks"
   # This include will now run to completion, because internal tasks catch their own errors.
   include_tasks: perform_checks.yml
+
+# -------------------------------------------------------
+# VERIFY DATA (DEBUGGING)
+# -------------------------------------------------------
+# This proves the variable is set ON THE NODE before we try to read it from localhost
+- name: "Debug: Verify Captured Errors on Node"
+  debug:
+    msg: "Node {{ inventory_hostname }} has {{ health_check_errors | length }} errors: {{ health_check_errors }}"
 
 # -------------------------------------------------------
 # CONSOLIDATED REPORTING (Runs once on Localhost)
@@ -14,7 +26,7 @@
       debug:
         msg: "Host {{ item }}: {{ hostvars[item]['health_check_errors'] | default('UNDEFINED') }}"
       loop: "{{ ansible_play_hosts }}"
-      
+
     # 1. Build the text report
     - name: Build Report String
       set_fact:
