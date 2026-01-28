@@ -118,3 +118,45 @@
       when: 
         - not pcs_status.failed | bool
         - item.failed | bool
+
+# -------------------------------------------------------
+# SECTION 5: GLOBAL PROPERTIES
+# -------------------------------------------------------
+- name: "SECTION 5: Verify Global Properties"
+  block:
+    - name: Get Cluster Properties
+      command: pcs property show --all
+      register: pcs_properties
+      changed_when: false
+      ignore_errors: true
+
+    # CASE A: Command Failed
+    - name: Record Properties Command Failure
+      set_fact:
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 5: Unable to retrieve properties. Error: ' + pcs_properties.stderr | default('Command failed')] }}"
+      when: pcs_properties.failed | bool
+
+    # CASE B: Check Specific Properties
+    - name: Assert Property Values
+      assert:
+        that:
+          - "item.pattern in pcs_properties.stdout if item.should_exist else item.pattern not in pcs_properties.stdout"
+        fail_msg: "{{ item.msg }}"
+      loop:
+        - { pattern: 'stonith-enabled: true',  should_exist: true,  msg: 'CRITICAL: stonith-enabled is NOT set to true.' }
+        - { pattern: 'maintenance-mode: true', should_exist: false, msg: 'WARNING: Cluster is in Maintenance Mode.' }
+      register: prop_check_results
+      ignore_errors: true
+      when: 
+        - not pcs_properties.failed | bool
+        - pcs_properties.stdout is defined
+
+    - name: Record Property Failures
+      set_fact:
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 5: ' + item.msg] }}"
+      loop: "{{ prop_check_results.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item.pattern }}"
+      when: 
+        - not pcs_properties.failed | bool
+        - item.failed | bool
