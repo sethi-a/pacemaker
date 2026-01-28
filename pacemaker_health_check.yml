@@ -37,12 +37,12 @@
               {% for host in ansible_play_hosts %}
               -------------------------------------------------------------
               NODE: {{ host }}
-              {% if (hostvars[host]).get('health_check_errors') | default([]) | length == 0 %}
+              {% if ((hostvars[host]).get('health_check_errors')) | default([]) | length == 0 %}
               STATUS: [ OK ]
               {% else %}
               STATUS: [ FAILED ]
               ERRORS:
-              {% for err in hostvars[host]).get('health_check_errors') %}
+              {% for err in (hostvars[host]).get('health_check_errors') %}
                 - {{ err }}
               {% endfor %}
               {% endif %}
