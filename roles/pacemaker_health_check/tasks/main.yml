@@ -50,13 +50,6 @@
       debug:
         msg: "{{ final_report.split('\n') }}"
 
-    # 3. (Optional) Save the report to a file on the Ansible Server
-    - name: Save Report to File
-      copy:
-        content: "{{ final_report }}"
-        dest: "/tmp/pacemaker_health_report_{{ ansible_date_time.date }}.txt"
-      delegate_to: localhost
-
     # -------------------------------------------------------
     # FINAL FAILURE
     # -------------------------------------------------------
