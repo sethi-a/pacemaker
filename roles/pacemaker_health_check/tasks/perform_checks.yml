@@ -140,7 +140,7 @@
     - name: Assert Property Values
       assert:
         that:
-          - "item.pattern in pcs_properties.stdout if item.should_exist else item.pattern not in pcs_properties.stdout"
+          - "item.pattern in pcs_properties.stdout | default([]) if item.should_exist else item.pattern not in pcs_properties.stdout | default([])"
         fail_msg: "{{ item.msg }}"
       loop:
         - { pattern: 'stonith-enabled: true',  should_exist: true,  msg: 'CRITICAL: stonith-enabled is NOT set to true.' }
