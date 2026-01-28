@@ -11,10 +11,10 @@
 
     - name: Summary of errors across all nodes
       ansible.builtin.debug:
-        msg: "Host {{ item }} reported these errors: {{ hostvars[item].health_check_errors }}"
+        msg: "Host {{ item }} reported these errors: {{ hostvars[item]['health_check_errors'] }}"
       loop: "{{ ansible_play_hosts }}"
       run_once: true
-      when: hostvars[item].health_check_errors | length > 0
+      when: hostvars[item].['health_check_errors'] | length > 0
 
     # # -------------------------------------------------------
     # # CONSOLIDATED REPORTING (Runs once on Localhost)
