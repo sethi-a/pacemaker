@@ -93,7 +93,7 @@
       assert:
         that:
           # We fail if the 'pattern' exists in the stdout
-          - "item.pattern not in pcs_status.stdout"
+          - "item.pattern not in pcs_status.stdout | default([])"
         fail_msg: "{{ item.msg }}"
       loop:
         - { pattern: 'Standby:', msg: 'One or more nodes are in Standby mode.' }
