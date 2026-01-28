@@ -19,9 +19,13 @@
         | sum > 0 
       }}
   block:
+    - name: Display Values
+      debug:
+        msg: "cluster_has_failures: {{ cluster_has_failures }}"
+        
     # 1. Build a text report using Jinja2
     - name: Build Report String
-      set_fact:
+      ansible.builtin.set_fact:
         final_report: |
           =============================================================
           PACEMAKER CLUSTER HEALTH REPORT
