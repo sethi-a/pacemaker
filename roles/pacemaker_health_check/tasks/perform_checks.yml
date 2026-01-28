@@ -136,27 +136,33 @@
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 5: Unable to retrieve properties. Error: ' + pcs_properties.stderr | default('Command failed')] }}"
       when: pcs_properties.failed | bool
 
-    # CASE B: Check Specific Properties
-    - name: Assert Property Values
+    - name: Assert Required Properties Exist
       assert:
         that:
-          - "item.pattern in pcs_properties.stdout | default([]) if item.should_exist else item.pattern not in pcs_properties.stdout | default([])"
+          - "item.pattern in pcs_properties.stdout"
         fail_msg: "{{ item.msg }}"
       loop:
-        - { pattern: 'stonith-enabled: true',  should_exist: true,  msg: 'CRITICAL: stonith-enabled is NOT set to true.' }
-        - { pattern: 'maintenance-mode: true', should_exist: false, msg: 'WARNING: Cluster is in Maintenance Mode.' }
-      register: prop_check_results
+        - { pattern: 'stonith-enabled: true', msg: 'CRITICAL: stonith-enabled is NOT set to true.' }
+      register: prop_exist_results
       ignore_errors: true
-      when: 
-        - not pcs_properties.failed | bool
-        - pcs_properties.stdout is defined
+      when: not pcs_properties.failed | bool
+
+    - name: Assert Forbidden Properties Absent
+      assert:
+        that:
+          - "item.pattern not in pcs_properties.stdout"
+        fail_msg: "{{ item.msg }}"
+      loop:
+        - { pattern: 'maintenance-mode: true', msg: 'WARNING: Cluster is in Maintenance Mode.' }
+      register: prop_absent_results
+      ignore_errors: true
+      when: not pcs_properties.failed | bool
 
     - name: Record Property Failures
       set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 5: ' + item.msg] }}"
-      loop: "{{ prop_check_results.results | default([]) }}"
+      # We loop over BOTH results lists combined
+      loop: "{{ (prop_exist_results.results | default([])) + (prop_absent_results.results | default([])) }}"
       loop_control:
-        label: "{{ item.item.pattern }}"
-      when: 
-        - not pcs_properties.failed | bool
-        - item.failed | bool
+        label: "{{ item.item.msg }}"
+      when: item.failed | bool
