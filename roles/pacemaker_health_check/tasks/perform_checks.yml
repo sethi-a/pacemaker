@@ -37,26 +37,26 @@
       loop_control:
         label: "{{ item }}"
 
-# # -------------------------------------------------------
-# # SECTION 3: CONFIGURATION FILES
-# # -------------------------------------------------------
-# - name: "SECTION 3: Verify Configuration Files"
-#   block:
-#     - name: Check existence of configuration files
-#       stat:
-#         path: "{{ item }}"
-#       register: config_files
-#       loop:
-#         - "{{ corosync_conf_path }}"
-#         - "{{ cib_xml_path }}"
+# -------------------------------------------------------
+# SECTION 3: CONFIGURATION FILES
+# -------------------------------------------------------
+- name: "SECTION 3: Verify Configuration Files"
+  block:
+    - name: Check existence of configuration files
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: config_files
+      loop:
+        - "{{ corosync_conf_path }}"
+        - "{{ cib_xml_path }}"
 
-#     - name: Assert Configuration files exist
-#       assert:
-#         that: item.stat.exists
-#         fail_msg: "Critical Configuration file {{ item.item }} is missing."
-#       loop: "{{ config_files.results }}"
-#       loop_control:
-#         label: "{{ item.item }}"
+    - name: Assert Configuration files exist
+      ansible.builtin.assert:
+        that: item.stat.exists
+        fail_msg: "Critical Configuration file {{ item.item }} is missing."
+      loop: "{{ config_files.results }}"
+      loop_control:
+        label: "{{ item.item }}"
 
 # # -------------------------------------------------------
 # # SECTION 4: NODE HEALTH (STANDBY/OFFLINE)
