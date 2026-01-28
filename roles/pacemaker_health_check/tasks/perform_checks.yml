@@ -17,22 +17,11 @@
 - name: "SECTION 2: Verify Service Status (Pacemaker & Corosync)"
   block:
     - name: Populate service facts
-      service_facts:
-
-    - name: "Debug: Print Service Status found in Facts"
-      ansible.builtin.debug:
-        msg: >-
-          Service '{{ item }}.service': 
-          {{ ansible_facts.services[item + '.service'].state | default('NOT INSTALLED / NOT FOUND') }}
-      loop:
-        - "{{ pacemaker_service }}"
-        - "{{ corosync_service }}"
-      loop_control:
-        label: "{{ item }}"
+      ansible.builtin.service_facts:
       
     # 2. VALIDATE: Check existence AND state safely
     - name: "Assert Services are Installed and Running"
-      assert:
+      ansible.builtin.assert:
         that:
           # First, ensure the key actually exists in the facts dictionary
           - "(item + '.service') in ansible_facts.services"
