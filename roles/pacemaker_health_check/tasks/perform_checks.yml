@@ -134,9 +134,7 @@
     - name: Record Properties Command Failure
       set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 5: Unable to retrieve properties. Error: ' + pcs_properties.stderr | default('Command failed')] }}"
-      when: >
-        pcs_properties is not defined or
-        (pcs_properties.failed is defined and pcs_properties.failed)
+      when: pcs_properties is not defined or (pcs_properties.failed is defined and pcs_properties.failed)
 
     - name: Assert Required Properties Exist
       assert:
