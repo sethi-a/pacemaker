@@ -58,28 +58,28 @@
       loop_control:
         label: "{{ item.item }}"
 
-# # -------------------------------------------------------
-# # SECTION 4: NODE HEALTH (STANDBY/OFFLINE)
-# # -------------------------------------------------------
-# - name: "SECTION 4: Cluster Node Health Check"
-#   block:
-#     - name: Get Cluster Status (PCS)
-#       command: pcs status
-#       register: pcs_status
-#       changed_when: false
+# -------------------------------------------------------
+# SECTION 4: NODE HEALTH (STANDBY/OFFLINE)
+# -------------------------------------------------------
+- name: "SECTION 4: Cluster Node Health Check"
+  block:
+    - name: Get Cluster Status (PCS)
+      ansible.builtin.command: pcs status
+      register: pcs_status
+      changed_when: false
 
-#     - name: Assert No Nodes are in Standby
-#       assert:
-#         that:
-#           - "'Standby:' not in pcs_status.stdout"
-#         fail_msg: "One or more nodes are in Standby mode."
+    - name: Assert No Nodes are in Standby
+      ansible.builtin.assert:
+        that:
+          - "'Standby:' not in pcs_status.stdout"
+        fail_msg: "One or more nodes are in Standby mode."
 
-#     - name: Assert No Nodes are Lost/Offline
-#       assert:
-#         that:
-#           - "'OFFLINE:' not in pcs_status.stdout"
-#           - "'UNCLEAN' not in pcs_status.stdout"
-#         fail_msg: "One or more nodes are OFFLINE or UNCLEAN."
+    - name: Assert No Nodes are Lost/Offline
+      ansible.builtin.assert:
+        that:
+          - "'OFFLINE:' not in pcs_status.stdout"
+          - "'UNCLEAN' not in pcs_status.stdout"
+        fail_msg: "One or more nodes are OFFLINE or UNCLEAN."
 
 # # -------------------------------------------------------
 # # SECTION 5: GLOBAL PROPERTIES
@@ -186,7 +186,3 @@
 #           SPLIT BRAIN DETECTED! 
 #           Nodes are seeing different Designated Coordinators (DCs).
 #           DCs reported: {{ ansible_play_hosts | map('extract', hostvars, ['current_dc_node', 'stdout']) | list }}
-
-- name: "Report Health Status"
-  debug:
-    msg: "SUCCESS: Cluster Health Check Passed on {{ inventory_hostname }}"
