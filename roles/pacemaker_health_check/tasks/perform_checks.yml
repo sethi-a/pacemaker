@@ -64,7 +64,7 @@
 - name: "SECTION 4: Cluster Node Health Check"
   block:
     - name: Get Cluster Status (PCS)
-      ansible.builtin.command: pcs status
+      command: pcs status
       register: pcs_status
       changed_when: false
 
