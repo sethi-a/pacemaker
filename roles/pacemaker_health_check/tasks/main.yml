@@ -22,11 +22,6 @@
   run_once: true
   delegate_to: localhost
   block:
-    - name: "Debug: Print Raw Error Lists for All Hosts"
-      debug:
-        msg: "Host {{ item }}: {{ hostvars[item]['health_check_errors'] | default('UNDEFINED') }}"
-      loop: "{{ ansible_play_hosts }}"
-
     # 1. Build the text report
     - name: Build Report String
       set_fact:
