@@ -16,7 +16,7 @@
     - name: Record Variable Failures
       set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 1: ' + item.msg] }}"
-      loop: "{{ var_check_result.results }}"
+      loop: "{{ var_check_result.results | default([]) }}"
       loop_control:
         label: "{{ item.item }}"
       when: item.failed | bool
@@ -43,7 +43,7 @@
     - name: Record Service Failures
       set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 2: ' + item.msg] }}"
-      loop: "{{ service_check_result.results }}"
+      loop: "{{ service_check_result.results | default([])}}"
       loop_control:
         label: "{{ item.item }}"
       when: item.failed | bool
@@ -65,7 +65,7 @@
       ansible.builtin.assert:
         that: item.stat.exists
         fail_msg: "Configuration file {{ item.item }} is missing."
-      loop: "{{ config_files.results }}"
+      loop: "{{ config_files.results | default([]) }}"
       loop_control:
         label: "{{ item.item }}"
       register: file_check_result
@@ -74,7 +74,7 @@
     - name: Record File Failures
       set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 3: ' + item.msg] }}"
-      loop: "{{ file_check_result.results }}"
+      loop: "{{ file_check_result.results | default([]) }}"
       loop_control:
         label: "{{ item.item.item }}" # Nested item structure due to previous loop
       when: item.failed | bool
@@ -105,7 +105,7 @@
     - name: Record Node Health Failures
       set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 4: ' + item.msg] }}"
-      loop: "{{ node_health_results.results }}"
+      loop: "{{ node_health_results.results | default([]) }}"
       loop_control:
         label: "{{ item.item.pattern }}"
       when: item.failed | bool
