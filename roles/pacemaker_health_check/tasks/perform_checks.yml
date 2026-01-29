@@ -60,6 +60,7 @@
       loop:
         - "{{ corosync_conf_path }}"
         - "{{ cib_xml_path }}"
+      ignore_errors: true
 
     - name: Assert Configuration files exist
       ansible.builtin.assert:
@@ -88,6 +89,7 @@
       command: pcs status
       register: pcs_status
       changed_when: false
+      ignore_errors: true
 
     - name: Record Critical PCS Failure
       set_fact:
