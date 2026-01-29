@@ -23,6 +23,7 @@
     - include_tasks: checks/04_node_health.yml
     - include_tasks: checks/05_properties.yml
     - include_tasks: checks/06_stonith.yml
+    - include_tasks: checks/07_failed_actions.yml
     - include_tasks: checks/08_stonith_history.yml
 
 # -------------------------------------------------------
