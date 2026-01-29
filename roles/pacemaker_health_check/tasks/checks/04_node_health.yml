@@ -28,8 +28,8 @@
         fail_msg: "{{ item.msg }}"
       loop:
         - { pattern: 'standby', msg: 'One or more nodes are in Standby mode.' }
-        - { pattern: 'OFFLINE', msg: 'One or more nodes are OFFLINE.' }
-        - { pattern: 'UNCLEAN',  msg: 'One or more nodes are UNCLEAN.' }
+        - { pattern: 'OFFLINE:', msg: 'One or more nodes are OFFLINE.' }
+        - { pattern: 'UNCLEAN:',  msg: 'One or more nodes are UNCLEAN.' }
       register: node_health_results
       ignore_errors: true
       when: 
