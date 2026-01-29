@@ -96,22 +96,6 @@
       debug:
         msg: "{{ final_report.split('\n') }}"
 
-    # -------------------------------------------------------
-    # NOTIFICATION LOGIC
-    # -------------------------------------------------------
-    - name: "ALERT: Send Slack Notification"
-      community.general.slack:
-        token: "{{ slack_token }}"
-        channel: "{{ slack_channel }}"
-        msg: |
-          :rotating_light: *Pacemaker Cluster Health Check FAILED*
-          ```
-          {{ final_report }}
-          ```
-      when: 
-        - enable_slack_notification | bool
-        - cluster_has_failures | bool
-
     - name: Fail Playbook if Critical Errors Exist
       fail:
         msg: "Cluster Health Check Failed. See Report above."
