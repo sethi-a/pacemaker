@@ -21,7 +21,7 @@
       loop:
         - condition: "pcs_stonith.stdout | length > 0 and 'No stonith resources configured' not in pcs_stonith.stdout"
           msg: "No Stonith resources are configured."
-        - condition: "'Started' in pcs_stonith.stdout"
+        - condition: "Started in pcs_stonith.stdout"
           msg: "Stonith resource is configured but not in 'Started' state."
       register: stonith_check_results
       ignore_errors: true
