@@ -1,0 +1,28 @@
+---
+# -------------------------------------------------------
+# SECTION 2: SERVICE STATUS
+# -------------------------------------------------------
+- name: "SECTION 2: Verify Service Status"
+  block:
+    - name: Populate service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert Services are Running
+      ansible.builtin.assert:
+        that:
+          - "(item + '.service') in ansible_facts.services"
+          - "ansible_facts.services[item + '.service'].state == 'running'"
+        fail_msg: "Service '{{ item }}' is not running."
+      loop:
+        - "{{ pacemaker_service }}"
+        - "{{ corosync_service }}"
+      register: service_check_result
+      ignore_errors: true
+
+    - name: Record Service Failures
+      set_fact:
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 2: ' + item.msg] }}"
+      loop: "{{ service_check_result.results | default([])}}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: item.failed | bool

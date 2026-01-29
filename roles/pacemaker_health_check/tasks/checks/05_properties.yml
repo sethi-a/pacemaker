@@ -1,0 +1,55 @@
+---
+# -------------------------------------------------------
+# SECTION 5: GLOBAL PROPERTIES
+# -------------------------------------------------------
+- name: "SECTION 5: Verify Global Properties"
+  block:
+    - name: Get Cluster Properties
+      command: pcs property show --all
+      register: pcs_properties
+      changed_when: false
+      ignore_errors: true
+
+    - name: Record Properties Command Failure
+      set_fact:
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 5: Unable to retrieve properties. Error: ' + pcs_properties.stderr | default('Command failed')] }}"
+      when: pcs_properties is not defined or (pcs_properties.failed is defined and pcs_properties.failed)
+
+    - name: Assert Required Properties Exist
+      assert:
+        that:
+          - "item.pattern in pcs_properties.stdout"
+        fail_msg: "{{ item.msg }}"
+      loop:
+        - { pattern: 'stonith-enabled: true', msg: 'CRITICAL: stonith-enabled is NOT set to true.' }
+      register: prop_exist_results
+      ignore_errors: true
+      when:
+        - pcs_properties is defined
+        - not (pcs_properties.failed | default(false))
+        - pcs_properties.stdout is defined
+
+    - name: Assert Forbidden Properties Absent
+      assert:
+        that:
+          - "item.pattern not in pcs_properties.stdout"
+        fail_msg: "{{ item.msg }}"
+      loop:
+        - { pattern: 'maintenance-mode: true', msg: 'WARNING: Cluster is in Maintenance Mode.' }
+      register: prop_absent_results
+      ignore_errors: true
+      when:
+        - pcs_properties is defined
+        - not (pcs_properties.failed | default(false))
+        - pcs_properties.stdout is defined
+
+    - name: Record Property Failures
+      set_fact:
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 5: ' + item.msg] }}"
+      # Loop over both result lists safely
+      loop: "{{ (prop_exist_results.results | default([])) + (prop_absent_results.results | default([])) }}"
+      loop_control:
+        label: "{{ item.item.msg }}"
+      when: 
+        - item.failed is defined
+        - item.failed | bool

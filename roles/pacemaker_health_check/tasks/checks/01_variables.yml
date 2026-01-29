@@ -1,0 +1,22 @@
+---
+# -------------------------------------------------------
+# SECTION 1: VARIABLE VALIDATION
+# -------------------------------------------------------
+- name: "SECTION 1: Verification of Required Variables"
+  block:
+    - name: Assert Variables are defined
+      ansible.builtin.assert:
+        that:
+          - pacemaker_service is defined
+          - corosync_service is defined
+        fail_msg: "Required variables for service names are missing."
+      register: var_check_result
+      ignore_errors: true
+
+    - name: Record Variable Failures
+      set_fact:
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 1: ' + item.msg] }}"
+      loop: "{{ var_check_result.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: item.failed | bool

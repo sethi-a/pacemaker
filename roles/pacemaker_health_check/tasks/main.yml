@@ -1,4 +1,19 @@
 ---
 - name: "Wrapper: Execute Health Checks"
-  # This include will now run to completion, because internal tasks catch their own errors.
-  include_tasks: perform_checks.yml
+# -------------------------------------------------------
+# STEP 1: SAFETY FALLBACK
+# -------------------------------------------------------
+- name: "Ensure Error List Exists (Fallback)"
+  set_fact:
+    health_check_errors: "{{ health_check_errors | default([]) }}"
+
+# -------------------------------------------------------
+# STEP 2: EXECUTE CHECKS (Modularized)
+# -------------------------------------------------------
+- name: "Wrapper: Execute Health Checks"
+  block:
+    - include_tasks: checks/01_variables.yml
+    - include_tasks: checks/02_services.yml
+    - include_tasks: checks/03_config_files.yml
+    - include_tasks: checks/04_node_health.yml
+    - include_tasks: checks/05_properties.yml

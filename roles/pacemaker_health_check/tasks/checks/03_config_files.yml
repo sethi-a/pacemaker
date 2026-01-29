@@ -1,0 +1,32 @@
+---
+# -------------------------------------------------------
+# SECTION 3: CONFIGURATION FILES
+# -------------------------------------------------------
+- name: "SECTION 3: Verify Configuration Files"
+  block:
+    - name: Check existence of configuration files
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: config_files
+      loop:
+        - "{{ corosync_conf_path }}"
+        - "{{ cib_xml_path }}"
+      ignore_errors: true
+
+    - name: Assert Configuration files exist
+      ansible.builtin.assert:
+        that: item.stat.exists
+        fail_msg: "Configuration file {{ item.item }} is missing."
+      loop: "{{ config_files.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item }}"
+      register: file_check_result
+      ignore_errors: true
+
+    - name: Record File Failures
+      set_fact:
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 3: ' + item.msg] }}"
+      loop: "{{ file_check_result.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item.item }}" # Nested item structure due to previous loop
+      when: item.failed | bool
