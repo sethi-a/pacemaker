@@ -7,9 +7,11 @@
     - name: Assert Variables are defined
       ansible.builtin.assert:
         that:
-          - pacemaker_service is defined
-          - corosync_service is defined
-        fail_msg: "Required variables for service names are missing."
+          - pacemaker_service is defined and pacemaker_service != ''
+          - corosync_service is defined and corosync_service != ''
+          - corosync_conf_path is defined and corosync_conf_path != ''
+          - cib_xml_path is defined and cib_xml_path != ''
+        fail_msg: "Required variables are missing."
       register: var_check_result
       ignore_errors: true
 
