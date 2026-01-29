@@ -7,10 +7,22 @@
       set_fact:
         final_report: |
           =============================================================
-          CLUSTER HEALTH SUMMARY
+          PACEMAKER CLUSTER HEALTH SUMMARY
           =============================================================
           Timestamp: {{ ansible_date_time.iso8601 }}
           Nodes Checked: {{ groups['cluster_nodes'] | length }}
+          
+          -------------------------------------------------------------
+          SCOPE OF CHECKS (LEGEND)
+          -------------------------------------------------------------
+          [ Local Node Checks ]
+            1. Required Variables     2. Service Status (Systemd)
+            3. Configuration Files
+          
+          [ Global Cluster Checks ]
+            4. Node Health (PCS)      5. Cluster Properties
+            6. Stonith Configuration  7. Failed Resource Actions
+            8. Fencing History        9. Split Brain Detection
           
           -------------------------------------------------------------
           GLOBAL CLUSTER HEALTH (Sections 4-9)
@@ -57,20 +69,21 @@
           
           {# CHECK: Is node unreachable? #}
           {% if host not in ansible_play_hosts %}
-            [ CRITICAL ] {{ host }} : Node Unreachable / SSH Failure
-            {% set node_issues_found = true %}
+          [ CRITICAL ] {{ host }} 
+             DETAILS: Node Unreachable / SSH Failure
+          {% set node_issues_found = true %}
           
           {# CHECK: Does node have local errors? #}
           {% elif local_issues | length > 0 %}
-            [ FAILED ]   {{ host }}
+          [ FAILED ]   {{ host }}
             {% for issue in local_issues %}
-              - {{ issue }}
+             - {{ issue }}
             {% endfor %}
-            {% set node_issues_found = true %}
+          {% set node_issues_found = true %}
           
           {# CHECK: Node is OK #}
           {% else %}
-            [ OK ]       {{ host }}
+          [ OK ]       {{ host }}
           {% endif %}
           {% endfor %}
           =============================================================
@@ -82,6 +95,22 @@
     - name: "PRINT SUMMARY REPORT"
       debug:
         msg: "{{ final_report.split('\n') }}"
+
+    # -------------------------------------------------------
+    # NOTIFICATION LOGIC
+    # -------------------------------------------------------
+    - name: "ALERT: Send Slack Notification"
+      community.general.slack:
+        token: "{{ slack_token }}"
+        channel: "{{ slack_channel }}"
+        msg: |
+          :rotating_light: *Pacemaker Cluster Health Check FAILED*
+          ```
+          {{ final_report }}
+          ```
+      when: 
+        - enable_slack_notification | bool
+        - cluster_has_failures | bool
 
     - name: Fail Playbook if Critical Errors Exist
       fail:
