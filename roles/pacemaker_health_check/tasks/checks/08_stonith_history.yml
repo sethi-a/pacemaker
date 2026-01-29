@@ -1,0 +1,27 @@
+---
+- name: "SECTION 8: Check for Stonith Events (Cluster Wide)"
+  when: inventory_hostname == active_cluster_node
+  block:
+    - name: Get Stonith History
+      shell: pcs stonith history | grep -v "Cleaning up"
+      register: stonith_history
+      changed_when: false
+      ignore_errors: true 
+
+    - name: Assert No Recent Fencing
+      assert:
+        that:
+          - "'error' not in stonith_history.stdout"
+          - "'failed' not in stonith_history.stdout"
+        fail_msg: "Found failed Stonith/Fencing events in history."
+      register: history_check_result
+      ignore_errors: true
+      when: 
+        - stonith_history.rc != 127  
+        - stonith_history.stdout is defined
+
+    - name: Record History Failures
+      set_fact:
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 8: ' + item.msg] }}"
+      loop: "{{ history_check_result.results | default([]) }}"
+      when: item.failed | bool

@@ -1,0 +1,33 @@
+---
+- name: "SECTION 7: Check for Failed Cluster Events (Cluster Wide)"
+  when: inventory_hostname == active_cluster_node
+  block:
+    - name: Get Cluster Status (For Events)
+      command: pcs status
+      register: pcs_status_events
+      changed_when: false
+      ignore_errors: true
+
+    - name: Record Status Command Failure
+      set_fact:
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 7: Unable to check events. Error: ' + pcs_status_events.stderr | default('Command failed')] }}"
+      when: pcs_status_events.failed | bool
+
+    - name: Assert No Failed Actions
+      assert:
+        that:
+          - "'Failed Resource Actions:' not in pcs_status_events.stdout"
+        fail_msg: "Cluster reports Failed Resource Actions. Check 'pcs status'."
+      register: event_check_result
+      ignore_errors: true
+      when: 
+        - not (pcs_status_events.failed | default(false))
+        - pcs_status_events.stdout is defined
+
+    - name: Record Event Failures
+      set_fact:
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 7: ' + item.msg] }}"
+      loop: "{{ event_check_result.results | default([]) }}"
+      when: 
+        - not (pcs_status_events.failed | default(false))
+        - item.failed | bool
