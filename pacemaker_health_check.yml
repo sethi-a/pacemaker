@@ -3,7 +3,6 @@
   hosts: cluster_nodes  # MUST TARGET ALL NODES
   become: true
   gather_facts: true
-  ignore_errors: true
 
   roles:
     - pacemaker_health_check
