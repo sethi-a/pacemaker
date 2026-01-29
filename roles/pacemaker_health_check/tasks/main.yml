@@ -25,6 +25,7 @@
     - include_tasks: checks/06_stonith.yml
     - include_tasks: checks/07_failed_actions.yml
     - include_tasks: checks/08_stonith_history.yml
+    - include_tasks: checks/09_split_brain.yml
 
 # -------------------------------------------------------
 # STEP 3. GENERATE REPORT

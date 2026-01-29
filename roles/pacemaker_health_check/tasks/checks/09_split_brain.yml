@@ -1,0 +1,31 @@
+---
+- name: "SECTION 9: Split Brain Detection"
+  block:
+    - name: Get DC Name
+      shell: pcs status | grep "Current DC:" | awk '{print $3}'
+      register: current_dc_node
+      changed_when: false
+      ignore_errors: true
+
+    - name: Assert Consensus on DC
+      run_once: true
+      assert:
+        that:
+          - >-
+            ansible_play_hosts 
+            | map('extract', hostvars, ['current_dc_node', 'stdout']) 
+            | select('defined')
+            | unique 
+            | list 
+            | count == 1
+        fail_msg: "Split Brain Detected: Nodes see different DCs (or DC is unknown)."
+      register: split_brain_result
+      ignore_errors: true
+      
+    - name: Record Split Brain Failure
+      run_once: true
+      set_fact:
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 9: ' + split_brain_result.msg] }}"
+      when: 
+        - split_brain_result.failed is defined
+        - split_brain_result.failed | bool
