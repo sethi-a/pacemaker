@@ -40,13 +40,6 @@ The following variables can be customized in `defaults/main.yml` or overridden i
 | `corosync_conf_path` | `/etc/corosync/corosync.conf` | Path to the main Corosync config. |
 | `cib_xml_path` | `/var/lib/pacemaker/cib/cib.xml` | Path to the Cluster Information Base XML. |
 
-### Notification Settings
-| Variable | Default | Description |
-|:---|:---|:---|
-| `enable_slack_notification`| `false` | Set to `true` to enable Slack alerts on failure. |
-| `slack_token` | `""` | Your Slack App Bot Token (xoxb-...). |
-| `slack_channel` | `"#ops-alerts"` | The Slack channel to post the report to. |
-
 ---
 
 ## Health Check Scope
@@ -79,6 +72,3 @@ The role performs checks in **9 Sections**:
 
   roles:
     - role: pacemaker_health_check
-      vars:
-        enable_slack_notification: true
-        slack_token: "xoxb-12345-67890-abcdef"
