@@ -1,0 +1,8 @@
+# Directory where backups will be stored
+cluster_backup_dir: "/var/backups/pcs_cluster"
+
+# Prefix for the backup file
+cluster_backup_prefix: "cluster_backup"
+
+# Retention: How many days to keep backups (Optional feature logic not included in basic tasks, but good practice)
+cluster_backup_retention_days: 7
