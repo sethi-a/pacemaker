@@ -27,7 +27,7 @@
           -------------------------------------------------------------
           LOCAL NODE CHECKS (Sections 1-3)
           -------------------------------------------------------------
-          {% for host in groups['cluster_nodes'] -%}
+          {% for host in groups['cluster_nodes'] %}
           {%- set host_vars = hostvars[host] | default({}) -%}
           {%- set host_errors = host_vars.get('health_check_errors', []) -%}
           {%- set local_issues = [] -%}
@@ -38,18 +38,18 @@
               {%- endif -%}
             {%- endfor -%}
           {%- endif -%}
-          {%- if host not in ansible_play_hosts %}
+          {% if host not in ansible_play_hosts -%}
           [ CRITICAL ] {{ host }} 
              DETAILS: Node Unreachable / SSH Failure
-          {%- elif local_issues | length > 0 %}
+          {% elif local_issues | length > 0 -%}
           [ FAILED ]   {{ host }}
-          {%- for issue in local_issues %}
+          {% for issue in local_issues -%}
              - {{ issue }}
-          {%- endfor %}
-          {%- else %}
-          [ OK ]       {{ host }}
-          {%- endif %}
           {% endfor -%}
+          {% else -%}
+          [ OK ]       {{ host }}
+          {% endif -%}
+          {% endfor %}
 
           -------------------------------------------------------------
           GLOBAL CLUSTER HEALTH (Sections 4-9)
