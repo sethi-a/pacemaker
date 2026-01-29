@@ -1,0 +1,40 @@
+---
+- name: "SECTION 6: Verify Stonith Resources (Cluster Wide)"
+  when: inventory_hostname == active_cluster_node
+  block:
+    - name: Get Stonith Status
+      command: pcs stonith
+      register: pcs_stonith
+      changed_when: false
+      ignore_errors: true
+
+    - name: Record Stonith Command Failure
+      set_fact:
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 6: Unable to retrieve Stonith status. Error: ' + pcs_stonith.stderr | default('Command failed')] }}"
+      when: pcs_stonith.failed | bool
+
+    - name: Assert Stonith State
+      assert:
+        that:
+          - "item.condition"
+        fail_msg: "{{ item.msg }}"
+      loop:
+        - condition: "pcs_stonith.stdout | length > 0 and 'No stonith resources configured' not in pcs_stonith.stdout"
+          msg: "No Stonith resources are configured."
+        - condition: "'Started' in pcs_stonith.stdout"
+          msg: "Stonith resource is configured but not in 'Started' state."
+      register: stonith_check_results
+      ignore_errors: true
+      when: 
+        - not (pcs_stonith.failed | default(false))
+        - pcs_stonith.stdout is defined
+
+    - name: Record Stonith Failures
+      set_fact:
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 6: ' + item.msg] }}"
+      loop: "{{ stonith_check_results.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item.msg }}"
+      when: 
+        - not (pcs_stonith.failed | default(false))
+        - item.failed | bool
