@@ -1,6 +1,6 @@
 ---
 # -------------------------------------------------------
-# STEP 1: SAFETY FALLBACK
+# STEP 1: SET VARIABLES
 # -------------------------------------------------------
 - name: "Ensure Error List Exists (Fallback)"
   set_fact:
@@ -16,3 +16,9 @@
     - include_tasks: checks/03_config_files.yml
     - include_tasks: checks/04_node_health.yml
     - include_tasks: checks/05_properties.yml
+
+# -------------------------------------------------------
+# STEP 3. GENERATE REPORT
+# -------------------------------------------------------
+- name: "Generate Consolidated Report"
+  include_tasks: reporting.yml

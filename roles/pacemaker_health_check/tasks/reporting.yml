@@ -1,0 +1,51 @@
+---
+- name: "Generate and Display Cluster Report"
+  run_once: true
+  delegate_to: localhost
+  block:
+    - name: Build Report String
+      set_fact:
+        final_report: |
+          =============================================================
+          PACEMAKER CLUSTER HEALTH REPORT
+          =============================================================
+          Timestamp: {{ ansible_date_time.iso8601 }}
+          Total Nodes Checked: {{ groups['cluster_nodes'] | length }}
+          
+          DETAILS BY NODE:
+          {% for host in groups['cluster_nodes'] %}
+          -------------------------------------------------------------
+          NODE: {{ host }}
+          {% set target_host_data = hostvars[host] | default({}) %}
+          {% set host_errors = target_host_data.get('health_check_errors', 'NOT_INITIALIZED') %}
+          
+          {% if host not in ansible_play_hosts %}
+          STATUS: [ CRITICAL - UNREACHABLE ]
+          DETAILS: Node failed connection or dropped out early.
+          {% elif host_errors == 'NOT_INITIALIZED' %}
+          STATUS: [ UNKNOWN ]
+          DETAILS: Health check variable not found.
+          {% elif host_errors | length == 0 %}
+          STATUS: [ OK ]
+          {% else %}
+          STATUS: [ FAILED ]
+          ERRORS:
+          {% for err in host_errors %}
+            - {{ err }}
+          {% endfor %}
+          {% endif %}
+          {% endfor %}
+          =============================================================
+
+    - name: Set Cluster Failure Flag
+      set_fact:
+        cluster_has_failures: "{{ 'STATUS: [ OK ]' not in final_report or 'STATUS: [ FAILED ]' in final_report or 'CRITICAL' in final_report }}"
+
+    - name: "PRINT CONSOLIDATED REPORT"
+      debug:
+        msg: "{{ final_report.split('\n') }}"
+
+    - name: Fail Playbook if Critical Errors Exist
+      fail:
+        msg: "Cluster Health Check Failed. See Report above."
+      when: cluster_has_failures | bool
