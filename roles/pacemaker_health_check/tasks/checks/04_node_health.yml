@@ -23,11 +23,11 @@
     - name: Assert Node Health States
       assert:
         that:
-          - "item.pattern not in pcs_status.stdout | default([])"
+          - "item.pattern not in pcs_status.stdout | default('')"
         fail_msg: "{{ item.msg }}"
       loop:
-        - { pattern: 'standby:', msg: 'One or more nodes are in Standby mode.' }
-        - { pattern: 'OFFLINE:', msg: 'One or more nodes are OFFLINE.' }
+        - { pattern: 'standby', msg: 'One or more nodes are in Standby mode.' }
+        - { pattern: 'OFFLINE', msg: 'One or more nodes are OFFLINE.' }
         - { pattern: 'UNCLEAN',  msg: 'One or more nodes are UNCLEAN.' }
       register: node_health_results
       ignore_errors: true
