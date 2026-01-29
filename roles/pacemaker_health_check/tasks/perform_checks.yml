@@ -130,6 +130,10 @@
       changed_when: false
       ignore_errors: true
 
+    - name: print the pcs propertirs stdout
+      debug:
+        msg:  "{{ pcs_properties.stdout }}
+        
     - name: Record Properties Command Failure
       set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 5: Unable to retrieve properties. Error: ' + pcs_properties.stderr | default('Command failed')] }}"
