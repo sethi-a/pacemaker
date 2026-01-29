@@ -11,22 +11,31 @@
           =============================================================
           Timestamp: {{ ansible_date_time.iso8601 }}
           Total Nodes Checked: {{ groups['cluster_nodes'] | length }}
+          Global Checks (Sec 4-8) Executed On: {{ ansible_play_hosts[0] }}
           
           DETAILS BY NODE:
           {% for host in groups['cluster_nodes'] %}
           -------------------------------------------------------------
           NODE: {{ host }}
+          {% if host == ansible_play_hosts[0] %}
+          (Primary Checker - Includes Global Cluster Status)
+          {% endif %}
+          
           {% set target_host_data = hostvars[host] | default({}) %}
           {% set host_errors = target_host_data.get('health_check_errors', 'NOT_INITIALIZED') %}
           
+          {# --- STATUS LOGIC --- #}
           {% if host not in ansible_play_hosts %}
           STATUS: [ CRITICAL - UNREACHABLE ]
           DETAILS: Node failed connection or dropped out early.
+          
           {% elif host_errors == 'NOT_INITIALIZED' %}
           STATUS: [ UNKNOWN ]
           DETAILS: Health check variable not found.
+          
           {% elif host_errors | length == 0 %}
           STATUS: [ OK ]
+          
           {% else %}
           STATUS: [ FAILED ]
           ERRORS:
