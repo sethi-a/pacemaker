@@ -3,7 +3,7 @@
 # SECTION 4: NODE HEALTH
 # -------------------------------------------------------
 - name: "SECTION 4: Cluster Node Health Check"
-  when: inventory_hostname == ansible_play_hosts[0]
+  when: inventory_hostname == active_cluster_node
   block:
     - name: Get Cluster Status (PCS)
       command: pcs status

@@ -3,7 +3,7 @@
 # SECTION 5: GLOBAL PROPERTIES
 # -------------------------------------------------------
 - name: "SECTION 5: Verify Global Properties"
-  when: inventory_hostname == ansible_play_hosts[0]
+  when: inventory_hostname == active_cluster_node
   block:
     - name: Get Cluster Properties
       command: pcs property show --all

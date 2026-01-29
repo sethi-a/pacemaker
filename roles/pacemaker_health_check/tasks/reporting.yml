@@ -54,7 +54,7 @@
           -------------------------------------------------------------
           GLOBAL CLUSTER HEALTH (Sections 4-9)
           -------------------------------------------------------------
-          {% set primary_node = ansible_play_hosts[0] -%}
+          {% set primary_node = active_cluster_node | default(ansible_play_hosts[0]) -%}
           {%- set primary_vars = hostvars[primary_node] | default({}) -%}
           {%- set all_errors = primary_vars.get('health_check_errors', []) -%}
           {%- set global_issues = [] -%}
