@@ -25,32 +25,7 @@
             8. Fencing History        9. Split Brain Detection
           
           -------------------------------------------------------------
-          GLOBAL CLUSTER HEALTH (Sections 4-9)
-          -------------------------------------------------------------
-          {% set primary_node = ansible_play_hosts[0] %}
-          {% set primary_vars = hostvars[primary_node] | default({}) %}
-          {% set all_errors = primary_vars.get('health_check_errors', []) %}
-          
-          {# Filter for Global Sections (4,5,6,7,8,9) #}
-          {% set global_issues = [] %}
-          {% for err in all_errors %}
-            {% if 'SECTION 4' in err or 'SECTION 5' in err or 'SECTION 6' in err or 'SECTION 7' in err or 'SECTION 8' in err or 'SECTION 9' in err %}
-              {{ global_issues.append(err) }}
-            {% endif %}
-          {% endfor %}
-          
-          {% if global_issues | length == 0 %}
-          STATUS: [ OK ] - Cluster properties and status look healthy.
-          {% else %}
-          STATUS: [ FAILED ]
-          ISSUES:
-          {% for issue in global_issues %}
-            - {{ issue }}
-          {% endfor %}
-          {% endif %}
-
-          -------------------------------------------------------------
-          NODE HEALTH STATUS (Sections 1-3)
+          LOCAL NODE CHECKS (Sections 1-3)
           -------------------------------------------------------------
           {% set node_issues_found = false %}
           {% for host in groups['cluster_nodes'] %}
@@ -86,6 +61,31 @@
           [ OK ]       {{ host }}
           {% endif %}
           {% endfor %}
+
+          -------------------------------------------------------------
+          GLOBAL CLUSTER HEALTH (Sections 4-9)
+          -------------------------------------------------------------
+          {% set primary_node = ansible_play_hosts[0] %}
+          {% set primary_vars = hostvars[primary_node] | default({}) %}
+          {% set all_errors = primary_vars.get('health_check_errors', []) %}
+          
+          {# Filter for Global Sections (4,5,6,7,8,9) #}
+          {% set global_issues = [] %}
+          {% for err in all_errors %}
+            {% if 'SECTION 4' in err or 'SECTION 5' in err or 'SECTION 6' in err or 'SECTION 7' in err or 'SECTION 8' in err or 'SECTION 9' in err %}
+              {{ global_issues.append(err) }}
+            {% endif %}
+          {% endfor %}
+          
+          {% if global_issues | length == 0 %}
+          STATUS: [ OK ] - Cluster properties and status look healthy.
+          {% else %}
+          STATUS: [ FAILED ]
+          ISSUES:
+          {% for issue in global_issues %}
+            - {{ issue }}
+          {% endfor %}
+          {% endif %}
           =============================================================
 
     - name: Set Cluster Failure Flag
