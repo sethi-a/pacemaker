@@ -1,0 +1,13 @@
+---
+- name: "SECTION 10: Capture Cluster Status Snapshot"
+  when: inventory_hostname == active_cluster_node
+  block:
+    - name: Get Final Cluster Status
+      command: pcs status
+      register: final_cluster_status
+      changed_when: false
+      ignore_errors: true
+
+    - name: Save Status Snapshot
+      set_fact:
+        cluster_status_output: "{{ final_cluster_status.stdout | default('Error: Unable to retrieve cluster status.') }}"
