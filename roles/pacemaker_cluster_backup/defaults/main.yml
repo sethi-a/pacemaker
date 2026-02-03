@@ -5,7 +5,7 @@ cluster_backup_dir: "/tmp/backups/pcs_cluster"
 cluster_backup_prefix: "cluster_backup"
 
 # Shared location where the cliuster backup file has to be copied
-cluster_backup_shared_dest ""
+cluster_backup_shared_dest: ''
 
 # Flag to switch on / off the cluster backup to shared destination
 copy_to_shared_dest: false
