@@ -28,7 +28,7 @@
     # This task only runs if Step A found errors.
     # If this task FAILS, it triggers the 'rescue' section.
     - name: "Execute 'pcs resource cleanup'"
-      ansible.builtin.command: pcs resource cleanup
+      command: pcs resource cleanup
       register: pcs_cleanup_out
       failed_when: pcs_cleanup_out.rc != 0
       when: crm_mon_output.stdout | length > 0
