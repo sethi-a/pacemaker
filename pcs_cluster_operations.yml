@@ -1,5 +1,5 @@
 ---
-- name: Pacemaker Cluster Health Check
+- name: Pacemaker Cluster Opertions
   hosts: cluster_nodes  # MUST TARGET ALL NODES
   become: true
   gather_facts: true
@@ -7,4 +7,5 @@
   roles:
     # - pacemaker_health_check
     # - pacemaker_cluster_backup
-      - pacemaker_event_cleanup
+    # - pacemaker_event_cleanup
+     - pacemaker_verify

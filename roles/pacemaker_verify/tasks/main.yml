@@ -1,0 +1,51 @@
+---
+- name: "Find the Active Cluster Node"
+  block:
+    - name: "Step: Determine Active Cluster Node"
+      include_role:
+        name: pacemaker_common
+        tasks_from: elect_active_node
+        
+- name: "Cluster Verify Sequence"
+  when: inventory_hostname == active_cluster_node
+  block:
+    # 1. Verification of the required variables
+    - name: Verify required variables are defined
+      ansible.builtin.assert:
+        that:
+          - target_state is defined
+        fail_msg: "The variable 'target_state' must be defined (e.g., Started, Stopped)."
+
+    # 2. Create a list of resources and groups based on pcs resource config
+    - name: Retrieve raw Pacemaker resource configuration
+      ansible.builtin.command: pcs resource config
+      register: pcs_config_raw
+      changed_when: false
+      check_mode: false
+
+    - name: Parse resource IDs from configuration
+      ansible.builtin.set_fact:
+        # Regex looks for lines starting with 'Resource:' or 'Group:' and captures the ID
+        # Note: Adjust regex based on your specific 'pcs' version output format if necessary
+        pacemaker_resources: "{{ pcs_config_raw.stdout | regex_findall('^\\s*(?:Resource|Group):\\s+([\\w-]+)', multiline=True) }}"
+
+    # 3. Display summary of resources
+    - name: Display summary of identified resources
+      ansible.builtin.debug:
+        msg: 
+          - "Identified {{ pacemaker_resources | length }} resources/groups."
+          - "List: {{ pacemaker_resources }}"
+
+    # 4. Verify state and handle transitions (Looping via include_tasks)
+    - name: Verify state for each resource
+      ansible.builtin.include_tasks: verify_resource.yml
+      loop: "{{ pacemaker_resources }}"
+      loop_control:
+        loop_var: resource_item
+
+    # 5. Set facts to be able to access between runs/plays
+    - name: Persist resource status facts
+      ansible.builtin.set_fact:
+        pcmk_verified_resources: "{{ pacemaker_resources }}"
+        pcmk_verification_status: "Success"
+        cacheable: yes

@@ -1,0 +1,19 @@
+---
+- name: "Check state of {{ resource_item }} (Waiting for: {{ target_state }})"
+  ansible.builtin.shell: |
+    pcs resource show {{ resource_item }}
+  register: resource_check
+  # The task succeeds only if the stdout contains the target state
+  # It will retry if it fails (e.g., if currently 'Starting' but we want 'Started')
+  until: 
+    - resource_check.rc == 0
+    - target_state in resource_check.stdout
+  retries: "{{ pcmk_retries }}"
+  delay: "{{ pcmk_delay }}"
+  changed_when: false
+  ignore_errors: true
+
+- name: Report failure if state was not reached
+  ansible.builtin.fail:
+    msg: "Resource {{ resource_item }} failed to reach state '{{ target_state }}' after {{ pcmk_retries }} retries."
+  when: resource_check.failed

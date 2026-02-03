@@ -1,0 +1,9 @@
+---
+# defaults/main.yml
+
+# The state you want to verify (Started, Stopped, Master, Slave)
+target_state: "Started"
+
+# Retry settings for resources transitioning states
+pcmk_retries: 10
+pcmk_delay: 6
