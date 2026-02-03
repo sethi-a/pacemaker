@@ -16,7 +16,11 @@
       ansible.builtin.shell: "{{ pacemaker_check_command }}"
       register: crm_mon_output
       changed_when: false
-      failed_when: false 
+      failed_when: false
+
+    - name: print the output
+      debug: 
+        msg: "{{ crm_mon_output }}"
 
     # STEP B: Display Summary
     - name: "Display resource failure summary"
