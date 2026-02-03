@@ -5,4 +5,5 @@
   gather_facts: true
 
   roles:
-    - pacemaker_health_check
+    # - pacemaker_health_check
+    - pacemaker_cluster_backup

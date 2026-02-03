@@ -1,5 +1,5 @@
 # Directory where backups will be stored
-cluster_backup_dir: "/var/backups/pcs_cluster"
+cluster_backup_dir: "/tmp/backups/pcs_cluster"
 
 # Prefix for the backup file
 cluster_backup_prefix: "cluster_backup"

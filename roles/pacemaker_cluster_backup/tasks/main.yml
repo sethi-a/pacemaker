@@ -17,8 +17,6 @@
     path: "{{ cluster_backup_dir }}"
     state: directory
     mode: '0700'
-    owner: root
-    group: root
 
 - name: "4. Generate timestamp for a backup file"
   ansible.builtin.set_fact:
@@ -32,8 +30,6 @@
 - name: "5. Create a new backup file using pcs config backup"
   ansible.builtin.command:
     cmd: "pcs config backup {{ backup_file_path }}"
-  # pcs config backup does not support check_mode natively usually, so we run it only if not in check mode
-  # or we accept it will run.
   register: backup_output
 
 - name: Display backup command output
@@ -53,7 +49,6 @@
     fail_msg: "Backup file was not created or has a size of 0 bytes."
 
 - name: "7. Verify the backup file integrity"
-  # pcs backups are tar archives (usually bzip2). We use tar -t to verify readability.
   ansible.builtin.command:
     cmd: "tar -tf {{ backup_file_path }}"
   changed_when: false
