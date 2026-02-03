@@ -6,4 +6,5 @@
 
   roles:
     # - pacemaker_health_check
-    - pacemaker_cluster_backup
+    # - pacemaker_cluster_backup
+      - pacemaker_event_cleanup
