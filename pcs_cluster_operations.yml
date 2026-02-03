@@ -13,7 +13,7 @@
     - name: "Validate Election Success"
       ansible.builtin.fail:
         msg: "No active cluster node could be determined. Aborting."
-      when: active_node_name is not defined or active_node_name == ""
+      when: active_cluster_node is not defined or active_cluster_node == ""
 
   roles:
     - pacemaker_health_check
