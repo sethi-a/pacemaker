@@ -3,9 +3,20 @@
   hosts: cluster_nodes  # MUST TARGET ALL NODES
   become: true
   gather_facts: true
+  
+  pre_tasks:
+    - name: "Step: Determine Active Cluster Node"
+      include_role:
+        name: pacemaker_common
+        tasks_from: elect_active_node
+
+    - name: "Validate Election Success"
+      ansible.builtin.fail:
+        msg: "No active cluster node could be determined. Aborting."
+      when: active_node_name is not defined or active_node_name == ""
 
   roles:
-    # - pacemaker_health_check
+    - pacemaker_health_check
     # - pacemaker_cluster_backup
     # - pacemaker_event_cleanup
-     - pacemaker_verify
+    # - pacemaker_verify
