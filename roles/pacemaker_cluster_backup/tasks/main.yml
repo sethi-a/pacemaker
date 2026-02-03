@@ -24,14 +24,14 @@
     - name: "2. Check shared storage availability"
       ansible.builtin.stat:
         path: "{{ cluster_backup_shared_dest }}"
-      when: copy_to_shared_dest is true
+      when: copy_to_shared_dest
       register: shared_dest_check
 
     - name: "Fail if shared storage is missing"
       ansible.builtin.fail:
         msg: "Shared destination '{{ cluster_backup_shared_dest }}' is missing."
       when: 
-        - copy_to_shared_dest is true
+        - copy_to_shared_dest
         - not shared_dest_check.stat.exists or not shared_dest_check.stat.isdir
 
 
@@ -70,7 +70,7 @@
             dest: "{{ cluster_backup_shared_dest }}/{{ backup_filename }}"
             remote_src: yes
             mode: '0640'
-          when: copy_to_shared_dest is true
+          when: copy_to_shared_dest
 
       # ==========================================
       # ERROR HANDLING: RESCUE
