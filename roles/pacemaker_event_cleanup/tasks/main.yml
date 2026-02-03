@@ -11,45 +11,55 @@
 - name: "Pacemaker Remediation Logic"
   when: inventory_hostname == active_cluster_node
   block:
-    # STEP A: Check for failures
+    # 1. Check for failures
     - name: "Check for Pacemaker resource failures"
       ansible.builtin.shell: "{{ pacemaker_check_command }}"
       register: crm_mon_output
       changed_when: false
-      failed_when: false
+      failed_when: false 
 
-    - name: print the output
-      debug: 
-        msg: "{{ crm_mon_output }}"
+    # 2. Normalize the output (Trim whitespace)
+    - name: "Set Failure Fact"
+      ansible.builtin.set_fact:
+        # If stdout is undefined/null, default to empty string, then trim whitespace
+        pacemaker_failure_text: "{{ crm_mon_output.stdout | default('') | trim }}"
 
-    # STEP B: Display Summary
+    # 3. CASE A: Handle EMPTY Output (No Failures)
+    - name: "Report System Health"
+      ansible.builtin.debug:
+        msg: "No resource failures detected on {{ inventory_hostname }}. System is healthy."
+      when: pacemaker_failure_text | length == 0
+
+    # 4. CASE B: Handle FAILURES (Cleanup)
     - name: "Display resource failure summary"
       ansible.builtin.debug:
-        msg: "Failures detected on {{ inventory_hostname }}. Proceeding to cleanup."
-      when: crm_mon_output.stdout | default([]) | length > 0
+        msg: 
+          - "FAILURE DETECTED on {{ inventory_hostname }}."
+          - "Details: {{ pacemaker_failure_text }}"
+      when: pacemaker_failure_text | length > 0
 
-    # STEP C: Attempt Primary Cleanup
-    # This task only runs if Step A found errors.
-    # If this task FAILS, it triggers the 'rescue' section.
     - name: "Execute 'pcs resource cleanup'"
-      command: pcs resource cleanup
+      ansible.builtin.command: pcs resource cleanup
       register: pcs_cleanup_out
       failed_when: pcs_cleanup_out.rc != 0
-      when: crm_mon_output.stdout | default([]) | length > 0
+      # Only run if text length is greater than 0
+      when: pacemaker_failure_text | length > 0
 
     - name: "Display Primary Cleanup Success"
       ansible.builtin.debug:
         msg: "Primary cleanup succeeded."
       when: 
-        - crm_mon_output.stdout | default([]) | length > 0
+        - pacemaker_failure_text | length > 0
         - pcs_cleanup_out.rc == 0
-
-  # 3. Rescue Block (Triggered ONLY if 'pcs resource cleanup' fails)
   rescue:
     # - name: "Execute Secondary Cleanup (crm_resource)"
     #   ansible.builtin.shell: |
+    #     # Robust loop to handle multiple failed resources
+    #     # We re-run the check command here to get fresh IDs
     #     for resource in $(crm_mon -1 -r | grep -i "failed" | awk '{print $NF}'); do
-    #         crm_resource --cleanup --resource $resource
+    #         if [ ! -z "$resource" ]; then
+    #             crm_resource --cleanup --resource $resource
+    #         fi
     #     done
     #     # Fallback global cleanup
     #     crm_resource --cleanup
