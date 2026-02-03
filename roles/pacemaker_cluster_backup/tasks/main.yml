@@ -1,59 +1,70 @@
 ---
-- name: "1. Verification of required variables"
-  ansible.builtin.assert:
-    that:
-      - cluster_backup_dir is defined
-      - cluster_backup_dir | length > 0
-    fail_msg: "The variable 'cluster_backup_dir' is not defined or is empty."
+- name: "Find the Active Cluster Node"
+  block:
+    - name: "Step: Determine Active Cluster Node"
+      include_role:
+        name: pacemaker_common
+        tasks_from: elect_active_node
 
-- name: "2. Verification of the existence of the pcs command"
-  command: which pcs
-  register: pcs_check
-  changed_when: false
-  failed_when: pcs_check.rc != 0
+- name: "Cluster Backup Sequence"
+  when: inventory_hostname == active_cluster_node
+  block:
+    - name: "1. Verification of required variables"
+      ansible.builtin.assert:
+        that:
+          - cluster_backup_dir is defined
+          - cluster_backup_dir | length > 0
+        fail_msg: "The variable 'cluster_backup_dir' is not defined or is empty."
 
-- name: "3. Create backup directory"
-  ansible.builtin.file:
-    path: "{{ cluster_backup_dir }}"
-    state: directory
-    mode: '0700'
+    - name: "2. Verification of the existence of the pcs command"
+      command: which pcs
+      register: pcs_check
+      changed_when: false
+      failed_when: pcs_check.rc != 0
 
-- name: "4. Generate timestamp for a backup file"
-  ansible.builtin.set_fact:
-    # Generates a string like: 2023-10-27_14-30-00
-    backup_timestamp: "{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}-{{ ansible_date_time.minute }}-{{ ansible_date_time.second }}"
+    - name: "3. Create backup directory"
+      ansible.builtin.file:
+        path: "{{ cluster_backup_dir }}"
+        state: directory
+        mode: '0700'
 
-- name: Construct full backup file path
-  ansible.builtin.set_fact:
-    backup_file_path: "{{ cluster_backup_dir }}/{{ cluster_backup_prefix }}_{{ backup_timestamp }}.tar.bz2"
+    - name: "4. Generate timestamp for a backup file"
+      ansible.builtin.set_fact:
+        # Generates a string like: 2023-10-27_14-30-00
+        backup_timestamp: "{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}-{{ ansible_date_time.minute }}-{{ ansible_date_time.second }}"
 
-- name: "5. Create a new backup file using pcs config backup"
-  command:
-    cmd: "pcs config backup {{ backup_file_path }}"
-  register: backup_output
+    - name: Construct full backup file path
+      ansible.builtin.set_fact:
+        backup_file_path: "{{ cluster_backup_dir }}/{{ cluster_backup_prefix }}_{{ backup_timestamp }}.tar.bz2"
 
-- name: Display backup command output
-  ansible.builtin.debug:
-    var: backup_output.stdout
+    - name: "5. Create a new backup file using pcs config backup"
+      command:
+        cmd: "pcs config backup {{ backup_file_path }}"
+      register: backup_output
 
-- name: "6. Get the file stats of the backup file"
-  ansible.builtin.stat:
-    path: "{{ backup_file_path }}"
-  register: backup_file_stats
+    - name: Display backup command output
+      ansible.builtin.debug:
+        var: backup_output.stdout
 
-- name: Verify file exists and is not empty
-  ansible.builtin.assert:
-    that:
-      - backup_file_stats.stat.exists
-      - backup_file_stats.stat.size > 0
-    fail_msg: "Backup file was not created or has a size of 0 bytes."
+    - name: "6. Get the file stats of the backup file"
+      ansible.builtin.stat:
+        path: "{{ backup_file_path }}"
+      register: backup_file_stats
 
-- name: "7. Verify the backup file integrity"
-  ansible.builtin.command:
-    cmd: "tar -tf {{ backup_file_path }}"
-  changed_when: false
-  register: integrity_check
+    - name: Verify file exists and is not empty
+      ansible.builtin.assert:
+        that:
+          - backup_file_stats.stat.exists
+          - backup_file_stats.stat.size > 0
+        fail_msg: "Backup file was not created or has a size of 0 bytes."
 
-- name: Confirm Integrity Check Passed
-  ansible.builtin.debug:
-    msg: "Backup integrity verified successfully. File located at {{ backup_file_path }}"
+    - name: "7. Verify the backup file integrity"
+      command:
+        cmd: "tar -tf {{ backup_file_path }}"
+      changed_when: false
+      register: integrity_check
+
+    - name: Confirm Integrity Check Passed
+      ansible.builtin.debug:
+        msg: "Backup integrity verified successfully. File located at {{ backup_file_path }}"
+  
