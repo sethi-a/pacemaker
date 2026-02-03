@@ -5,7 +5,7 @@
       include_role:
         name: pacemaker_common
         tasks_from: elect_active_node
-        
+
 - name: "Cluster Verify Sequence"
   when: inventory_hostname == active_cluster_node
   block:
@@ -18,7 +18,7 @@
 
     # 2. Create a list of resources and groups based on pcs resource config
     - name: Retrieve raw Pacemaker resource configuration
-      ansible.builtin.command: pcs resource config
+      command: pcs resource config
       register: pcs_config_raw
       changed_when: false
       check_mode: false
