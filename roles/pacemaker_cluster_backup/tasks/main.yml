@@ -7,7 +7,7 @@
     fail_msg: "The variable 'cluster_backup_dir' is not defined or is empty."
 
 - name: "2. Verification of the existence of the pcs command"
-  ansible.builtin.command: which pcs
+  command: which pcs
   register: pcs_check
   changed_when: false
   failed_when: pcs_check.rc != 0
@@ -28,7 +28,7 @@
     backup_file_path: "{{ cluster_backup_dir }}/{{ cluster_backup_prefix }}_{{ backup_timestamp }}.tar.bz2"
 
 - name: "5. Create a new backup file using pcs config backup"
-  ansible.builtin.command:
+  command:
     cmd: "pcs config backup {{ backup_file_path }}"
   register: backup_output
 
