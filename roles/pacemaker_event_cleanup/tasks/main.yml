@@ -26,7 +26,7 @@
     - name: "Display resource failure summary"
       ansible.builtin.debug:
         msg: "Failures detected on {{ inventory_hostname }}. Proceeding to cleanup."
-      when: crm_mon_output.stdout | length > 0
+      when: crm_mon_output.stdout | default([]) | length > 0
 
     # STEP C: Attempt Primary Cleanup
     # This task only runs if Step A found errors.
@@ -35,13 +35,13 @@
       command: pcs resource cleanup
       register: pcs_cleanup_out
       failed_when: pcs_cleanup_out.rc != 0
-      when: crm_mon_output.stdout | length > 0
+      when: crm_mon_output.stdout | default([]) | length > 0
 
     - name: "Display Primary Cleanup Success"
       ansible.builtin.debug:
         msg: "Primary cleanup succeeded."
       when: 
-        - crm_mon_output.stdout | length > 0
+        - crm_mon_output.stdout | default([]) | length > 0
         - pcs_cleanup_out.rc == 0
 
   # 3. Rescue Block (Triggered ONLY if 'pcs resource cleanup' fails)

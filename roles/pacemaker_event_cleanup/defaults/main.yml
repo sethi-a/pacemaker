@@ -1,7 +1,7 @@
 ---
 
 # Set to true to allow the cleanup role to execute
-pacemaker_cleanup_enabled: false
+pacemaker_cleanup_enabled: true
 
 # The command used to check for failures (as requested)
 pacemaker_check_command: "crm_mon -U all -I failures -1"
