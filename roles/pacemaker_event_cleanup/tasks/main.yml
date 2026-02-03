@@ -42,14 +42,14 @@
 
   # 3. Rescue Block (Triggered ONLY if 'pcs resource cleanup' fails)
   rescue:
-    - name: "Execute Secondary Cleanup (crm_resource)"
-      ansible.builtin.shell: |
-        for resource in $(crm_mon -1 -r | grep -i "failed" | awk '{print $NF}'); do
-            crm_resource --cleanup --resource $resource
-        done
-        # Fallback global cleanup
-        crm_resource --cleanup
-      register: rescue_cleanup_out
+    # - name: "Execute Secondary Cleanup (crm_resource)"
+    #   ansible.builtin.shell: |
+    #     for resource in $(crm_mon -1 -r | grep -i "failed" | awk '{print $NF}'); do
+    #         crm_resource --cleanup --resource $resource
+    #     done
+    #     # Fallback global cleanup
+    #     crm_resource --cleanup
+    #   register: rescue_cleanup_out
 
     - name: "Display Rescue Result"
       ansible.builtin.debug:
