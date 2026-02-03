@@ -27,14 +27,14 @@
     # 3. CASE A: Handle EMPTY Output (No Failures)
     - name: "Report System Health"
       ansible.builtin.debug:
-        msg: "No resource failures detected on {{ inventory_hostname }}. System is healthy."
+        msg: "No resource failures detected in the Cluster. Cluster is healthy."
       when: pacemaker_failure_text | length == 0
 
     # 4. CASE B: Handle FAILURES (Cleanup)
     - name: "Display resource failure summary"
       ansible.builtin.debug:
         msg: 
-          - "FAILURE DETECTED on {{ inventory_hostname }}."
+          - "FAILURE DETECTED in Cluster."
           - "Details: {{ pacemaker_failure_text }}"
       when: pacemaker_failure_text | length > 0
 
