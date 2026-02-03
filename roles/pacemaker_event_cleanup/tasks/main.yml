@@ -39,7 +39,7 @@
       when: pacemaker_failure_text | length > 0
 
     - name: "Execute 'pcs resource cleanup'"
-      ansible.builtin.command: pcs resource cleanup
+      command: pcs resource cleanup
       register: pcs_cleanup_out
       failed_when: pcs_cleanup_out.rc != 0
       # Only run if text length is greater than 0
