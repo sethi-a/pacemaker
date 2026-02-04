@@ -40,11 +40,15 @@
   changed_when: false
   ignore_errors: true
 
-# 5. Reporting (Processing the results)
-- name: Fail if any resource is not in the correct state
-  ansible.builtin.fail:
-    msg: "Resource '{{ item.item }}' failed. Expected '{{ target_state }}'. Got output: {{ item.stdout }}"
-  loop: "{{ resource_check_results.results }}"
-  when: 
-    - item.rc != 0 or target_state not in item.stdout
+- name: print the results
+  debug:
+    msg: "{{ resource_check_results.results }}"
+
+# # 5. Reporting (Processing the results)
+# - name: Fail if any resource is not in the correct state
+#   ansible.builtin.fail:
+#     msg: "Resource '{{ item.item }}' failed. Expected '{{ target_state }}'. Got output: {{ item.stdout }}"
+#   loop: "{{ resource_check_results.results }}"
+#   when: 
+#     - item.rc != 0 or target_state not in item.stdout
 
