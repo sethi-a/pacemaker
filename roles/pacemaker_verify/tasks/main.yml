@@ -19,7 +19,7 @@
   ansible.builtin.set_fact:
     pacemaker_resources: "{{ pcs_config_raw.stdout | regex_findall('^\\s*(?:Resource|Group):\\s+([\\w-]+)', multiline=True) }}"
 
-# 3. SAFETY CHECK
+# 3. Don't proceed if no resources detected.
 - name: Fail if no resources were found
   ansible.builtin.fail:
     msg: "Error: No resources detected. The cluster might be empty."
