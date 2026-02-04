@@ -14,7 +14,7 @@
 
   - name: Parse resource IDs from configuration
     ansible.builtin.set_fact:
-      pacemaker_resources: "{{ pcs_config_raw.stdout | regex_findall('^\\s*(?:Resource|Group):\\s+([\\w-]+)', multiline=True) }}"
+      pacemaker_resources: "{{ pcs_config_raw.stdout | regex_findall('^\\s*(?:Resource):\\s+([\\w-]+)', multiline=True) }}"
 
   # 3. Safety Check (Crucial: prevents role from succeeding if Regex finds nothing)
   - name: Fail if no resources were found
