@@ -1,13 +1,4 @@
 ---
-- name: "Find the Active Cluster Node"
-  block:
-    - name: "Step: Determine Active Cluster Node"
-      include_role:
-        name: pacemaker_common
-        tasks_from: elect_active_node
-
-# Running the Cluster Back up only on single node 
-
 - name: "Cluster Backup Sequence"
   when: inventory_hostname == active_cluster_node
   block:

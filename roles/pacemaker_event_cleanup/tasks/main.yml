@@ -1,13 +1,5 @@
 ---
-# 1. Find the active cluster node
-- name: "Find the Active Cluster Node"
-  block:
-    - name: "Step: Determine Active Cluster Node"
-      include_role:
-        name: pacemaker_common
-        tasks_from: elect_active_node
-
-# 2. Main Logic Block (Runs ONLY on the Active Node)
+# Main Logic Block (Runs ONLY on the Active Node)
 - name: "Pacemaker Remediation Logic"
   when: inventory_hostname == active_cluster_node
   block:

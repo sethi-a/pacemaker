@@ -1,9 +1,4 @@
----
-  - name: "Step: Determine Active Cluster Node"
-    include_role:
-      name: pacemaker_common
-      tasks_from: elect_active_node
-      
+---     
   # 1. Verification of the required variables
   - name: Verify required variables are defined
     ansible.builtin.assert:
