@@ -1,9 +1,6 @@
 ---
 - name: "Check state of {{ resource_item }}"
-  ansible.builtin.shell: |
-    # Grep for the resource ID in the status output
-    # Then check if the target state (e.g., 'Started') appears on that same line (or generally in the output for that resource)
-    pcs status | grep -A 1 "{{ resource_item }}"
+  ansible.builtin.shell: pcs status | grep -A 1 "{{ resource_item }}"
   register: resource_check
   changed_when: false
   # Success logic:
