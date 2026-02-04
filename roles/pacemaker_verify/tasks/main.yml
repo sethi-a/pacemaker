@@ -45,6 +45,7 @@
     exit 0
   register: bulk_check
   changed_when: false
+  become: true
   until: bulk_check.rc is defined and bulk_check.rc == 0
   retries: 20
   delay: 10
