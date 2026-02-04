@@ -19,11 +19,11 @@
   roles:
     # - role: pacemaker_health_check
 
-    - role: pacemaker_cluster_backup
-      when: inventory_hostname == active_cluster_node
+    # - role: pacemaker_cluster_backup
+    #   when: inventory_hostname == active_cluster_node
 
     # - role: pacemaker_event_cleanup
     #   when: inventory_hostname == active_cluster_node
     
-    # - role: pacemaker_verify
-    #   when: inventory_hostname == active_cluster_node
+    - role: pacemaker_verify
+      when: inventory_hostname == active_cluster_node
