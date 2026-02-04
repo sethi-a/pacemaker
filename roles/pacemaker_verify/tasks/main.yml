@@ -39,9 +39,7 @@
   loop: "{{ pacemaker_resources }}"
   register: resource_wait
   changed_when: false
-  until:
-    # IF we want it Started: Success if rc is 0 (Running)
-    - target_state == "Started" and resource_wait.rc == 0
+  until: resource_wait.rc == 0
   retries: 20   # 20 retries
   delay: 6      # 6 seconds delay
   failed_when: false
