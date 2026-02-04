@@ -5,6 +5,7 @@
   register: resource_locate
   changed_when: false
   ignore_errors: true 
+  become: true
   until:
     - (target_state == "Started" and resource_locate.rc == 0) or
       (target_state == "Stopped" and resource_locate.rc != 0)
