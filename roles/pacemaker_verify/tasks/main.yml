@@ -1,45 +1,60 @@
----     
-  # 1. Verification of the required variables
-  - name: Verify required variables are defined
-    ansible.builtin.assert:
-      that:
-        - target_state is defined
-      fail_msg: "The variable 'target_state' must be defined (e.g., Started, Stopped)."
+---
+# tasks/main.yml
 
-  # 2. Retrieve Configuration
-  - name: Retrieve raw Pacemaker resource configuration
-    command: pcs resource config
-    register: pcs_config_raw
-    changed_when: false
+# 1. Verification of required variables
+- name: Verify required variables are defined
+  ansible.builtin.assert:
+    that:
+      - target_state is defined
+    fail_msg: "The variable 'target_state' must be defined (e.g., Started, Stopped)."
 
-  - name: Parse resource IDs from configuration
-    ansible.builtin.set_fact:
-      pacemaker_resources: "{{ pcs_config_raw.stdout | regex_findall('^\\s*(?:Resource):\\s+([\\w-]+)', multiline=True) }}"
+# 2. Retrieve Configuration
+- name: Retrieve raw Pacemaker resource configuration
+  ansible.builtin.command: pcs resource config
+  register: pcs_config_raw
+  changed_when: false
+  failed_when: pcs_config_raw.rc != 0
 
-  # 3. Safety Check (Crucial: prevents role from succeeding if Regex finds nothing)
-  - name: Fail if no resources were found
-    ansible.builtin.fail:
-      msg: "Error: No resources detected. The 'pcs resource config' output format might have changed, or the cluster is empty."
-    when: pacemaker_resources | length == 0
+- name: Parse resource IDs from configuration
+  ansible.builtin.set_fact:
+    pacemaker_resources: "{{ pcs_config_raw.stdout | regex_findall('^\\s*(?:Resource|Group):\\s+([\\w-]+)', multiline=True) }}"
 
-  # 4. Summary
-  - name: Display summary of identified resources
-    ansible.builtin.debug:
-      msg: 
-        - "Identified {{ pacemaker_resources | length }} resources/groups."
-        - "List: {{ pacemaker_resources }}"
+# 3. SAFETY CHECK
+- name: Fail if no resources were found
+  ansible.builtin.fail:
+    msg: "Error: No resources detected. The cluster might be empty."
+  when: pacemaker_resources | length == 0
 
-  # 5. Verify state
-  - name: Verify state for each resource
-    ansible.builtin.include_tasks:
-      file: verify_resource.yml
-    loop: "{{ pacemaker_resources }}"
-    loop_control:
-      loop_var: resource_item
+# 4. SUMMARY
+- name: Display summary of identified resources
+  ansible.builtin.debug:
+    msg: 
+      - "Identified {{ pacemaker_resources | length }} resources."
+      - "List: {{ pacemaker_resources }}"
 
-  # 5. Set facts to be able to access between runs/plays
-  - name: Persist resource status facts
-    ansible.builtin.set_fact:
-      pcmk_verified_resources: "{{ pacemaker_resources }}"
-      pcmk_verification_status: "Success"
-      cacheable: yes
+# 5. BULK VERIFICATION
+- name: "Wait until ALL resources are {{ target_state }}"
+  ansible.builtin.shell: |
+    for res in {{ pacemaker_resources | join(' ') }}; do
+      pcs status | grep -A 2 "$res" | grep -q "{{ target_state }}" || exit 1
+    done
+    echo "All resources are {{ target_state }}"
+  register: bulk_check
+  changed_when: false
+  until: bulk_check.rc == 0
+  retries: 20   # Try for 20 times
+  delay: 10     # Wait 10 seconds between tries (Total wait: ~3.5 mins)
+  ignore_errors: true
+
+# 6. FINAL REPORTING
+- name: Report verification failure
+  ansible.builtin.fail:
+    msg: "Validation Failed! Not all resources reached '{{ target_state }}'. Please check 'pcs status' manually."
+  when: bulk_check.rc != 0
+
+# 7. SUCCESS FACTS
+- name: Persist resource status facts
+  ansible.builtin.set_fact:
+    pcmk_verified_resources: "{{ pacemaker_resources }}"
+    pcmk_verification_status: "Success"
+  when: bulk_check.rc == 0
