@@ -34,15 +34,16 @@
 
 # 4. Final Verification Loop (Safe Method)
 - name: Verify specific resource states
-  command: pcs resource show {{ item }}
+  command: 
+    cmd: crm_resource --resource {{ item }} --locate
   loop: "{{ pacemaker_resources }}"
-  register: resource_check_results
+  register: resource_results
   changed_when: false
   ignore_errors: true
 
 - name: print the results
   debug:
-    msg: "{{ resource_check_results.results }}"
+    msg: "{{ resource_results.results }}"
 
 # # 5. Reporting (Processing the results)
 # - name: Fail if any resource is not in the correct state
