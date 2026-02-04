@@ -6,12 +6,17 @@
         - target_state is defined
       fail_msg: "The variable 'target_state' must be defined (e.g., Started, Stopped)."
 
-  # 2. Create a list of resources and groups based on pcs resource config
+  # 2. Retrieve Configuration
   - name: Retrieve raw Pacemaker resource configuration
-    command: pcs resource config
+    ansible.builtin.command: pcs resource config
     register: pcs_config_raw
     changed_when: false
-    check_mode: false
+    # Fail immediately if command errors (e.g., cluster is down)
+    failed_when: pcs_config_raw.rc != 0
+
+  - name: Parse resource IDs from configuration
+    ansible.builtin.set_fact:
+      pacemaker_resources: "{{ pcs_config_raw.stdout | regex_findall('^\\s*(?:Resource|Group):\\s+([\\w-]+)', multiline=True) }}"
 
   # 3. Safety Check (Crucial: prevents role from succeeding if Regex finds nothing)
   - name: Fail if no resources were found
