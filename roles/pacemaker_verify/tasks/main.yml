@@ -34,8 +34,7 @@
 
 # 4. Final Verification Loop (Safe Method)
 - name: Verify specific resource states
-  ansible.builtin.command: 
-    cmd: pcs resource show {{ item }}
+  command: pcs resource show {{ item }}
   loop: "{{ pacemaker_resources }}"
   register: resource_check_results
   changed_when: false
