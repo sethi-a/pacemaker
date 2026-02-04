@@ -28,7 +28,8 @@
 
   # 5. Verify state
   - name: Verify state for each resource
-    ansible.builtin.include_tasks: verify_resource.yml
+    ansible.builtin.include_tasks:
+      file: verify_resource.yml
     loop: "{{ pacemaker_resources }}"
     loop_control:
       loop_var: resource_item
