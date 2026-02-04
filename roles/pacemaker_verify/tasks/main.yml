@@ -51,5 +51,5 @@
   loop: "{{ resource_wait.results }}"
   # If we want it 'Started', we fail if rc != 0 (because rc=1 means stopped)
   when: 
-    - target_state == "Started" and item.rc != 0
+    - item.rc != 0
 
