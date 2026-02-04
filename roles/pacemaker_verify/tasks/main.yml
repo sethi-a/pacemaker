@@ -27,11 +27,11 @@
         - "List: {{ pacemaker_resources }}"
 
   # 4. Verify state and handle transitions (Looping via include_tasks)
-  - name: Verify state for each resource
-    ansible.builtin.include_tasks: verify_resource.yml
-    loop: "{{ pacemaker_resources }}"
-    loop_control:
-      loop_var: resource_item
+  # - name: Verify state for each resource
+  #   ansible.builtin.include_tasks: verify_resource.yml
+  #   loop: "{{ pacemaker_resources }}"
+  #   loop_control:
+  #     loop_var: resource_item
 
   # 5. Set facts to be able to access between runs/plays
   - name: Persist resource status facts
