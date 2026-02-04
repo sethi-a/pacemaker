@@ -26,3 +26,4 @@
     #   when: inventory_hostname == active_cluster_node
     
     - role: pacemaker_verify
+      when: inventory_hostname == active_cluster_node

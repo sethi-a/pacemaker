@@ -5,8 +5,6 @@
       that:
         - target_state is defined
       fail_msg: "The variable 'target_state' must be defined (e.g., Started, Stopped)."
-    run_once: true
-    delegate_to: "{{ active_cluster_node }}"
 
   # 2. Create a list of resources and groups based on pcs resource config
   - name: Retrieve raw Pacemaker resource configuration
@@ -14,16 +12,12 @@
     register: pcs_config_raw
     changed_when: false
     check_mode: false
-    run_once: true
-    delegate_to: "{{ active_cluster_node }}"
 
   - name: Parse resource IDs from configuration
     ansible.builtin.set_fact:
       # Regex looks for lines starting with 'Resource:' or 'Group:' and captures the ID
       # Note: Adjust regex based on your specific 'pcs' version output format if necessary
       pacemaker_resources: "{{ pcs_config_raw.stdout | regex_findall('^\\s*(?:Resource|Group):\\s+([\\w-]+)', multiline=True) }}"
-    run_once: true
-    delegate_to: "{{ active_cluster_node }}"
 
   # 3. Display summary of resources
   - name: Display summary of identified resources
@@ -31,8 +25,6 @@
       msg: 
         - "Identified {{ pacemaker_resources | length }} resources/groups."
         - "List: {{ pacemaker_resources }}"
-    run_once: true
-    delegate_to: "{{ active_cluster_node }}"
 
   # 4. Verify state and handle transitions (Looping via include_tasks)
   - name: Verify state for each resource
@@ -40,8 +32,6 @@
     loop: "{{ pacemaker_resources }}"
     loop_control:
       loop_var: resource_item
-    run_once: true
-    delegate_to: "{{ active_cluster_node }}"
 
   # 5. Set facts to be able to access between runs/plays
   - name: Persist resource status facts
@@ -49,5 +39,3 @@
       pcmk_verified_resources: "{{ pacemaker_resources }}"
       pcmk_verification_status: "Success"
       cacheable: yes
-    run_once: true
-    delegate_to: "{{ active_cluster_node }}"
