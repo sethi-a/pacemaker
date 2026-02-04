@@ -13,25 +13,25 @@
     changed_when: false
     check_mode: false
 
-  - name: Parse resource IDs from configuration
-    ansible.builtin.set_fact:
-      # Regex looks for lines starting with 'Resource:' or 'Group:' and captures the ID
-      # Note: Adjust regex based on your specific 'pcs' version output format if necessary
-      pacemaker_resources: "{{ pcs_config_raw.stdout | regex_findall('^\\s*(?:Resource|Group):\\s+([\\w-]+)', multiline=True) }}"
+  # 3. Safety Check (Crucial: prevents role from succeeding if Regex finds nothing)
+  - name: Fail if no resources were found
+    ansible.builtin.fail:
+      msg: "Error: No resources detected. The 'pcs resource config' output format might have changed, or the cluster is empty."
+    when: pacemaker_resources | length == 0
 
-  # 3. Display summary of resources
+  # 4. Summary
   - name: Display summary of identified resources
     ansible.builtin.debug:
       msg: 
         - "Identified {{ pacemaker_resources | length }} resources/groups."
         - "List: {{ pacemaker_resources }}"
 
-  # 4. Verify state and handle transitions (Looping via include_tasks)
-  # - name: Verify state for each resource
-  #   ansible.builtin.include_tasks: verify_resource.yml
-  #   loop: "{{ pacemaker_resources }}"
-  #   loop_control:
-  #     loop_var: resource_item
+  # 5. Verify state
+  - name: Verify state for each resource
+    ansible.builtin.include_tasks: verify_resource.yml
+    loop: "{{ pacemaker_resources }}"
+    loop_control:
+      loop_var: resource_item
 
   # 5. Set facts to be able to access between runs/plays
   - name: Persist resource status facts
