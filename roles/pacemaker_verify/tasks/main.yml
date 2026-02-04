@@ -12,8 +12,6 @@
       cmd: pcs resource config
     register: pcs_config_raw
     changed_when: false
-    # Fail immediately if command errors (e.g., cluster is down)
-    failed_when: pcs_config_raw.rc != 0
 
   - name: Parse resource IDs from configuration
     ansible.builtin.set_fact:
