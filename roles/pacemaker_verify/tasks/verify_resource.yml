@@ -1,20 +1,23 @@
 ---
-- name: "Check state of {{ resource_item }} using crm_resource"
-  ansible.builtin.command:
-    cmd: crm_resource --resource {{ resource_item }} --locate
-  register: resource_locate
+- name: "Check state of {{ resource_item }}"
+  ansible.builtin.shell: |
+    # Grep for the resource ID in the status output
+    # Then check if the target state (e.g., 'Started') appears on that same line (or generally in the output for that resource)
+    pcs status | grep -A 1 "{{ resource_item }}"
+  register: resource_check
   changed_when: false
-  ignore_errors: true 
-  become: true
-  until:
-    - (target_state == "Started" and resource_locate.rc == 0) or
-      (target_state == "Stopped" and resource_locate.rc != 0)
+  # Success logic:
+  # 1. The grep found the resource (rc=0)
+  # 2. The output contains the word 'Started' (or whatever your target_state is)
+  until: 
+    - resource_check.rc == 0
+    - target_state in resource_check.stdout
   retries: "{{ pcmk_retries }}"
   delay: "{{ pcmk_delay }}"
-  
-- name: "Fail if {{ resource_item }} failed to reach {{ target_state }}"
+  ignore_errors: true
+
+- name: "Fail if {{ resource_item }} is not {{ target_state }}"
   ansible.builtin.fail:
-    msg: "TIMEOUT: Resource {{ resource_item }} did not reach state '{{ target_state }}'."
+    msg: "TIMEOUT: Resource {{ resource_item }} did not reach state '{{ target_state }}'. Last Output: {{ resource_check.stdout }}"
   when: 
-    - target_state == "Started"
-    - resource_locate.rc != 0
+    - resource_check.rc != 0 or target_state not in resource_check.stdout
