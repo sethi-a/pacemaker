@@ -8,7 +8,7 @@
 
   # 2. Retrieve Configuration
   - name: Retrieve raw Pacemaker resource configuration
-    ansible.builtin.command: pcs resource config
+    command: pcs resource config
     register: pcs_config_raw
     changed_when: false
     # Fail immediately if command errors (e.g., cluster is down)
