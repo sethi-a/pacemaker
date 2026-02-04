@@ -35,39 +35,29 @@
 # 5. BULK VERIFICATION
 - name: "Wait until ALL resources are {{ target_state }}"
   ansible.builtin.shell: |
-    # 1. Determine the exit code we expect from crm_resource
-    # If target is Started, we expect code 0 (Running). 
-    # If target is Stopped, we expect code 1 (Not Running).
-    if [ "{{ target_state }}" == "Started" ]; then 
-      EXPECTED_RC=0
-    else 
-      EXPECTED_RC=1
-    fi
-
-    # 2. Iterate through resources LOCALLY on the server
-    # This happens inside one SSH session, so it is fast and stable.
+    # Loop through the resource list
     for res in {{ pacemaker_resources | join(' ') }}; do
       
-      # --locate asks: "Is this resource running anywhere?"
-      # It returns 0 if Yes, 1 if No.
-      crm_resource --resource "$res" --locate > /dev/null 2>&1
-      ACTUAL_RC=$?
-
-      # 3. Validation Logic
-      if [ $ACTUAL_RC -ne $EXPECTED_RC ]; then
-        echo "Validating $res... FAILED (Not {{ target_state }})"
-        exit 1 # Fail the script. Ansible will wait 'delay' seconds and retry.
+      # LOGIC:
+      # crm_resource --locate returns 0 if running, 1 if stopped.
+      
+      if [ "{{ target_state }}" == "Started" ]; then
+        # Fails if resource is NOT found running
+        crm_resource --resource "$res" --locate > /dev/null 2>&1 || exit 1
+      else
+        # Fails if resource IS found running (We want it Stopped)
+        ! crm_resource --resource "$res" --locate > /dev/null 2>&1 || exit 1
       fi
+      
     done
-
-    echo "Success: All resources are {{ target_state }}"
+    exit 0
   register: bulk_check
   changed_when: false
-  until: bulk_check.rc == 0
-  retries: 20   # 20 tries * 10 seconds = ~3.5 minutes timeout
+  until: bulk_check.rc is defined and bulk_check.rc == 0
+  retries: 20
   delay: 10
-  ignore_errors: true # The next task handles the final error reporting
-
+  ignore_errors: true
+  
 # # 6. FINAL REPORTING
 # - name: Report verification failure
 #   ansible.builtin.fail:
