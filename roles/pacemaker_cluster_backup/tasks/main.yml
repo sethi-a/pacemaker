@@ -1,6 +1,5 @@
 ---
 - name: "Cluster Backup Sequence"
-  when: inventory_hostname == active_cluster_node
   block:
     # ==========================================
     # PHASE 1: PRE-CHECKS
