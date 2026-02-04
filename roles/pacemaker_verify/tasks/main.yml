@@ -32,33 +32,20 @@
       - "Identified {{ pacemaker_resources | length }} resources."
       - "List: {{ pacemaker_resources }}"
 
-# 5. Check for status of cluster
-- name: "Wait for Cluster to stabilize (Target: {{ target_state }})"
-  command: pcs status
-  register: cluster_status
-  changed_when: false
-  until: 
-    - cluster_status.rc == 0
-    - target_state in cluster_status.stdout
-  retries: 20   # Wait up to 3+ minutes
-  delay: 10     # Check every 10 seconds
-
-# 4. Final Verification Loop
+# 4. Final Verification Loop (Safe Method)
 - name: Verify specific resource states
-  ansible.builtin.shell: "pcs resource show {{ item }} | grep -i {{ target_state }}"
+  ansible.builtin.command: 
+    cmd: pcs resource show {{ item }}
   loop: "{{ pacemaker_resources }}"
-  register: resource_results
+  register: resource_check_results
   changed_when: false
   ignore_errors: true
 
-# 5. Reporting
+# 5. Reporting (Processing the results)
 - name: Fail if any resource is not in the correct state
   ansible.builtin.fail:
-    msg: "Resource {{ item.item }} is not {{ target_state }}. Output: {{ item.stdout }}"
-  loop: "{{ resource_results.results }}"
-  when: item.rc != 0
+    msg: "Resource '{{ item.item }}' failed. Expected '{{ target_state }}'. Got output: {{ item.stdout }}"
+  loop: "{{ resource_check_results.results }}"
+  when: 
+    - item.rc != 0 or target_state not in item.stdout
 
-# 6. Success Facts
-- name: Set Success Facts
-  ansible.builtin.set_fact:
-    pcmk_verification_status: "Success"
