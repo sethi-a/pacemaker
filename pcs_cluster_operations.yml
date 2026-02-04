@@ -9,6 +9,7 @@
       include_role:
         name: pacemaker_common
         tasks_from: elect_active_node
+      run_once: true
 
     - name: "Validate Election Success"
       ansible.builtin.fail:
@@ -16,7 +17,13 @@
       when: active_cluster_node is not defined or active_cluster_node == ""
 
   roles:
-    - pacemaker_health_check
-    # - pacemaker_cluster_backup
-    # - pacemaker_event_cleanup
-    # - pacemaker_verify
+    - role: pacemaker_health_check
+
+    # - role: pacemaker_cluster_backup
+    #   when: inventory_hostname == active_cluster_node
+
+    # - role: pacemaker_event_cleanup
+    #   when: inventory_hostname == active_cluster_node
+    
+    # - role: pacemaker_verify
+    #   when: inventory_hostname == active_cluster_node
