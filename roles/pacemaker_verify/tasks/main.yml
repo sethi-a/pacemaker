@@ -32,34 +32,34 @@
       - "Identified {{ pacemaker_resources | length }} resources."
       - "List: {{ pacemaker_resources }}"
 
-# 5. BULK VERIFICATION
-- name: "Wait until ALL resources are {{ target_state }}"
-  ansible.builtin.shell: |
-    for res in {{ pacemaker_resources | join(' ') }}; do
-      if [ "{{ target_state }}" == "Started" ]; then
-        crm_resource --resource "$res" --locate > /dev/null 2>&1 || exit 1
-      else
-        ! crm_resource --resource "$res" --locate > /dev/null 2>&1 || exit 1
-      fi
-    done
-    exit 0
-  register: bulk_check
+# 5. Check for status of cluster
+- name: "Wait for Cluster to stabilize (Target: {{ target_state }})"
+  ansible.builtin.command: pcs status
+  register: cluster_status
   changed_when: false
-  become: true
-  until: bulk_check.rc is defined and bulk_check.rc == 0
-  retries: 20
-  delay: 10
-  ignore_errors: true
+  until: 
+    - cluster_status.rc == 0
+    - target_state in cluster_status.stdout
+  retries: 20   # Wait up to 3+ minutes
+  delay: 10     # Check every 10 seconds
 
-# # 6. FINAL REPORTING
-# - name: Report verification failure
-#   ansible.builtin.fail:
-#     msg: "Validation Failed! Not all resources reached '{{ target_state }}'. Please check 'pcs status' manually."
-#   when: bulk_check.rc != 0
+# 4. Final Verification Loop
+- name: Verify specific resource states
+  ansible.builtin.shell: |
+    pcs resource show {{ item }} | grep -i "{{ target_state }}"
+  loop: "{{ pacemaker_resources }}"
+  register: resource_results
+  changed_when: false
+  ignore_errors: true # We want to see all failures, not stop on the first one
 
-# # 7. SUCCESS FACTS
-# - name: Persist resource status facts
-#   ansible.builtin.set_fact:
-#     pcmk_verified_resources: "{{ pacemaker_resources }}"
-#     pcmk_verification_status: "Success"
-#   when: bulk_check.rc == 0
+# 5. Reporting
+- name: Fail if any resource is not in the correct state
+  ansible.builtin.fail:
+    msg: "Resource {{ item.item }} is not {{ target_state }}. Output: {{ item.stdout }}"
+  loop: "{{ resource_results.results }}"
+  when: item.rc != 0
+
+# 6. Success Facts
+- name: Set Success Facts
+  ansible.builtin.set_fact:
+    pcmk_verification_status: "Success"
