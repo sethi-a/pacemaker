@@ -34,7 +34,7 @@
 
 # 5. Check for status of cluster
 - name: "Wait for Cluster to stabilize (Target: {{ target_state }})"
-  ansible.builtin.command: pcs status
+  command: pcs status
   register: cluster_status
   changed_when: false
   until: 
