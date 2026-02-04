@@ -37,15 +37,20 @@
   command: 
     cmd: crm_resource --resource {{ item }} --locate
   loop: "{{ pacemaker_resources }}"
-  register: resource_results
+  register: resource_wait
   changed_when: false
-  ignore_errors: true
+  until:
+    # IF we want it Started: Success if rc is 0 (Running)
+    - target_state == "Started" and resource_wait.rc == 0
+  retries: 20   # 20 retries
+  delay: 6      # 6 seconds delay
+  failed_when: false
 
 # 5. Fail if any resource is in Stopped State
 - name: Fail if any resource is not in the correct state
   ansible.builtin.fail:
     msg: "Resource '{{ item.item }}' is NOT {{ target_state }}."
-  loop: "{{ resource_results.results }}"
+  loop: "{{ resource_wait.results }}"
   # If we want it 'Started', we fail if rc != 0 (because rc=1 means stopped)
   when: 
     - target_state == "Started" and item.rc != 0
