@@ -35,20 +35,12 @@
 # 5. BULK VERIFICATION
 - name: "Wait until ALL resources are {{ target_state }}"
   ansible.builtin.shell: |
-    # Loop through the resource list
     for res in {{ pacemaker_resources | join(' ') }}; do
-      
-      # LOGIC:
-      # crm_resource --locate returns 0 if running, 1 if stopped.
-      
       if [ "{{ target_state }}" == "Started" ]; then
-        # Fails if resource is NOT found running
         crm_resource --resource "$res" --locate > /dev/null 2>&1 || exit 1
       else
-        # Fails if resource IS found running (We want it Stopped)
         ! crm_resource --resource "$res" --locate > /dev/null 2>&1 || exit 1
       fi
-      
     done
     exit 0
   register: bulk_check
@@ -57,7 +49,7 @@
   retries: 20
   delay: 10
   ignore_errors: true
-  
+
 # # 6. FINAL REPORTING
 # - name: Report verification failure
 #   ansible.builtin.fail:
