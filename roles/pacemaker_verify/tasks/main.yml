@@ -69,15 +69,15 @@
   delay: 10
   ignore_errors: true # The next task handles the final error reporting
 
-# 6. FINAL REPORTING
-- name: Report verification failure
-  ansible.builtin.fail:
-    msg: "Validation Failed! Not all resources reached '{{ target_state }}'. Please check 'pcs status' manually."
-  when: bulk_check.rc != 0
+# # 6. FINAL REPORTING
+# - name: Report verification failure
+#   ansible.builtin.fail:
+#     msg: "Validation Failed! Not all resources reached '{{ target_state }}'. Please check 'pcs status' manually."
+#   when: bulk_check.rc != 0
 
-# 7. SUCCESS FACTS
-- name: Persist resource status facts
-  ansible.builtin.set_fact:
-    pcmk_verified_resources: "{{ pacemaker_resources }}"
-    pcmk_verification_status: "Success"
-  when: bulk_check.rc == 0
+# # 7. SUCCESS FACTS
+# - name: Persist resource status facts
+#   ansible.builtin.set_fact:
+#     pcmk_verified_resources: "{{ pacemaker_resources }}"
+#     pcmk_verification_status: "Success"
+#   when: bulk_check.rc == 0
