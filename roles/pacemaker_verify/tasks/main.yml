@@ -61,7 +61,6 @@
     done
 
     echo "Success: All resources are {{ target_state }}"
-    exit 0
   register: bulk_check
   changed_when: false
   until: bulk_check.rc == 0
