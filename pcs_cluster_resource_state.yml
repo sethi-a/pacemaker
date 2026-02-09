@@ -36,4 +36,4 @@
       vars:
         pcs_resource_name: "web"
         pcs_resource_state: "enabled"
-        pcs_wait_retries: 60 # Increase wait time for startup
+        pcs_wait_retries: 120 # Increase wait time for startup
