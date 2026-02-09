@@ -18,7 +18,7 @@
 
   tasks:
     - name: Disable the Web Server resource
-      ansible.builtin.include_role:
+      include_role:
         name: pcs_cluster_resource_state
       when: inventory_hostname == active_cluster_node
       vars:
@@ -30,7 +30,7 @@
         msg: "Performing maintenance while resource is down..."
 
     - name: Enable the Web Server resource
-      ansible.builtin.include_role:
+      include_role:
         name: pcs_cluster_resource_state
       when: inventory_hostname == active_cluster_node
       vars:

@@ -15,7 +15,7 @@
 # 2. Check Existence & Detect Type (Single vs Group)
 # -----------------------------------------------------------------------------
 - name: "Check if resource '{{ pcs_resource_name }}' exists and get type"
-  ansible.builtin.command:
+  command:
     cmd: "pcs resource config {{ pcs_resource_name }}"
   register: _pcs_config_check
   changed_when: false
@@ -47,7 +47,7 @@
 # 4. Disable/Enable the resource (Works for both Groups and Single)
 # -----------------------------------------------------------------------------
 - name: "Ensure {{ pcs_resource_type }} '{{ pcs_resource_name }}' is {{ pcs_resource_state }}"
-  ansible.builtin.command:
+  command:
     # 'pcs resource enable/disable' works recursively on groups automatically
     cmd: "pcs resource {{ 'enable' if pcs_resource_state == 'enabled' else 'disable' }} {{ pcs_resource_name }}{{ ' --force' if pcs_force else '' }}"
   register: _pcs_action_result
@@ -57,7 +57,7 @@
 # 5. Wait for the resource/group to reach the desired state
 # -----------------------------------------------------------------------------
 - name: "Wait for '{{ pcs_resource_name }}' to be fully {{ pcs_resource_state }}"
-  ansible.builtin.command:
+  command:
     cmd: "pcs resource show {{ pcs_resource_name }}"
   register: _pcs_status_check
   until: 
