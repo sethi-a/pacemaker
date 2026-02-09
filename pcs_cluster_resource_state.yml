@@ -1,0 +1,25 @@
+---
+- name: Set Pacemaker Cluster Resource State
+  hosts: cluster_nodes[0]
+  become: true
+  gather_facts: true
+  
+  tasks:
+    - name: Disable the Web Server resource
+      ansible.builtin.include_role:
+        name: pcs_cluster_resource_state
+      vars:
+        pcs_resource_name: "web"
+        pcs_resource_state: "disabled"
+
+    - name: Perform maintenance task
+      ansible.builtin.debug:
+        msg: "Performing maintenance while resource is down..."
+
+    - name: Enable the Web Server resource
+      ansible.builtin.include_role:
+        name: pcs_cluster_resource_state
+      vars:
+        pcs_resource_name: "web"
+        pcs_resource_state: "enabled"
+        pcs_wait_retries: 60 # Increase wait time for startup

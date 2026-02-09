@@ -25,5 +25,5 @@
     # - role: pacemaker_event_cleanup
     #   when: inventory_hostname == active_cluster_node
     
-    - role: pacemaker_verify
-      when: inventory_hostname == active_cluster_node
+    # - role: pacemaker_verify
+    #   when: inventory_hostname == active_cluster_node

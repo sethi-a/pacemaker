@@ -1,0 +1,89 @@
+---
+# -----------------------------------------------------------------------------
+# 1. Verification of the required variables
+# -----------------------------------------------------------------------------
+- name: "Verify required variables are defined"
+  ansible.builtin.assert:
+    that:
+      - pcs_resource_name is defined
+      - pcs_resource_name | length > 0
+      - pcs_resource_state is defined
+      - pcs_resource_state in ['enabled', 'disabled']
+    fail_msg: "Validation Failed: 'pcs_resource_name' and 'pcs_resource_state' (enabled/disabled) are required."
+
+# -----------------------------------------------------------------------------
+# 2. Check Existence & Detect Type (Single vs Group)
+# -----------------------------------------------------------------------------
+- name: "Check if resource '{{ pcs_resource_name }}' exists and get type"
+  ansible.builtin.command:
+    cmd: "pcs resource config {{ pcs_resource_name }}"
+  register: _pcs_config_check
+  changed_when: false
+  failed_when: false # We handle failure manually below
+
+- name: "Fail if resource does not exist"
+  ansible.builtin.fail:
+    msg: "Error: The resource or group '{{ pcs_resource_name }}' does not exist in the cluster."
+  when: _pcs_config_check.rc != 0
+
+- name: "Detect if target is a Group or Single Resource"
+  ansible.builtin.set_fact:
+    pcs_resource_type: "{{ 'Group' if 'Group:' in _pcs_config_check.stdout else 'Single Resource' }}"
+
+# -----------------------------------------------------------------------------
+# 3. Display summary
+# -----------------------------------------------------------------------------
+- name: "Display resource management summary"
+  ansible.builtin.debug:
+    msg: 
+      - "---------------------------------------------"
+      - " Pacemaker Resource Manager"
+      - " Name: {{ pcs_resource_name }}"
+      - " Type: {{ pcs_resource_type }}"
+      - " Target State: {{ pcs_resource_state | upper }}"
+      - "---------------------------------------------"
+
+# -----------------------------------------------------------------------------
+# 4. Disable/Enable the resource (Works for both Groups and Single)
+# -----------------------------------------------------------------------------
+- name: "Ensure {{ pcs_resource_type }} '{{ pcs_resource_name }}' is {{ pcs_resource_state }}"
+  ansible.builtin.command:
+    # 'pcs resource enable/disable' works recursively on groups automatically
+    cmd: "pcs resource {{ 'enable' if pcs_resource_state == 'enabled' else 'disable' }} {{ pcs_resource_name }}{{ ' --force' if pcs_force else '' }}"
+  register: _pcs_action_result
+  changed_when: true
+
+# -----------------------------------------------------------------------------
+# 5. Wait for the resource/group to reach the desired state
+# -----------------------------------------------------------------------------
+- name: "Wait for '{{ pcs_resource_name }}' to be fully {{ pcs_resource_state }}"
+  ansible.builtin.command:
+    cmd: "pcs resource show {{ pcs_resource_name }}"
+  register: _pcs_status_check
+  until: 
+    - _pcs_status_check.rc == 0
+    # LOGIC EXPLANATION:
+    # If ENABLED: We expect "Started" to appear, and we must NOT see "Stopped" (meaning all group members are up).
+    # If DISABLED: We expect "Stopped" to appear, and we must NOT see "Started" (meaning all group members are down).
+    - >
+      (pcs_resource_state == 'enabled' and 'Started' in _pcs_status_check.stdout and 'Stopped' not in _pcs_status_check.stdout) or
+      (pcs_resource_state == 'disabled' and 'Stopped' in _pcs_status_check.stdout and 'Started' not in _pcs_status_check.stdout)
+  retries: "{{ pcs_wait_retries }}"
+  delay: "{{ pcs_wait_delay }}"
+  
+  # Fail if we timeout and the condition is not met
+  failed_when: 
+    - _pcs_status_check.rc != 0 or 
+      (pcs_resource_state == 'enabled' and ('Started' not in _pcs_status_check.stdout or 'Stopped' in _pcs_status_check.stdout)) or
+      (pcs_resource_state == 'disabled' and ('Stopped' not in _pcs_status_check.stdout or 'Started' in _pcs_status_check.stdout))
+
+# -----------------------------------------------------------------------------
+# 6. Set Facts
+# -----------------------------------------------------------------------------
+- name: "Set resource state facts"
+  ansible.builtin.set_fact:
+    pcs_resource_final_status:
+      name: "{{ pcs_resource_name }}"
+      type: "{{ pcs_resource_type }}"
+      desired_state: "{{ pcs_resource_state }}"
+      timestamp: "{{ ansible_date_time.iso8601 }}"

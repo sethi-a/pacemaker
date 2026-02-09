@@ -1,0 +1,11 @@
+---
+# defaults file for pcs_cluster_resource_state
+
+# Number of times to check the resource status before failing
+pcs_wait_retries: 30
+
+# Seconds to wait between checks
+pcs_wait_delay: 2
+
+# Force the command even if potential errors are detected (use with caution)
+pcs_force: false
