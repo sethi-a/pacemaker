@@ -1,0 +1,30 @@
+---
+# tasks/validate_config.yml
+
+- name: Check existence of booth.conf
+  stat:
+    path: "{{ booth_config_path }}"
+  register: booth_conf_file
+
+- name: Fail if configuration file is missing
+  fail:
+    msg: "booth.conf missing on {{ inventory_hostname }}"
+  when: not booth_conf_file.stat.exists
+
+- name: Calculate configuration checksum
+  stat:
+    path: "{{ booth_config_path }}"
+    checksum_algorithm: sha256
+  register: booth_conf_checksum
+  when: booth_conf_file.stat.exists
+
+# Aggregate checksums from all hosts in the play to compare them
+- name: Aggregate checksums for comparison
+  set_fact:
+    all_checksums: "{{ ansible_play_hosts | map('extract', hostvars, ['booth_conf_checksum', 'stat', 'checksum']) | list }}"
+  run_once: true
+
+- name: Verify Configuration Alignment
+  set_fact:
+    config_is_aligned: "{{ all_checksums | unique | length == 1 }}"
+  run_once: true

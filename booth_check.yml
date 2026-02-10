@@ -1,0 +1,16 @@
+---
+- name: Automated Pacemaker Booth Configuration Check
+  hosts: pacemaker_cluster  # This group must include Cluster Nodes AND the Arbitrator
+  become: true              # Required to run 'pcs' commands and read /etc/booth/
+  gather_facts: true        # Required for network facts and hostvar aggregation
+
+  vars:
+    # You can define these here or in group_vars/inventory
+    booth_ticket_name: "ticketA"
+    booth_config_path: "/etc/booth/booth.conf"
+    # Ensure this matches the actual IP of your Booth Arbitrator node
+    booth_arbitrator_ip: "192.168.1.100"
+    booth_port: 9929
+
+  roles:
+    - pcs_cluster_booth_config

@@ -1,0 +1,18 @@
+---
+# tasks/report.yml
+
+- name: Display Booth Configuration Report
+  ansible.builtin.debug:
+    msg:
+      - "=========================================================="
+      - "        PACEMAKER BOOTH CONFIGURATION CHECK REPORT        "
+      - "=========================================================="
+      - " Hostname            : {{ inventory_hostname }}"
+      - " Booth Status        : {{ 'RUNNING' if booth_running else 'STOPPED/ERROR' }}"
+      - " Ticket Owner        : {{ ticket_owner | default('N/A') }}"
+      - " Peers Responsive    : {{ peers_responsive | default('N/A') }}"
+      - " Arbitrator Status   : {{ arbitrator_status }}"
+      - " Config File Exists  : {{ booth_conf_file.stat.exists }}"
+      - " Config Checksum     : {{ booth_conf_checksum.stat.checksum | default('N/A') }}"
+      - " Cluster Alignment   : {{ 'PASSED' if config_is_aligned else 'FAILED (Checksum Mismatch)' }}"
+      - "=========================================================="

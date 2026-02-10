@@ -1,0 +1,28 @@
+---
+# tasks/validate_peers.yml
+
+# 1. Check Arbitrator Connectivity via Network
+- name: Validate connectivity to Arbitrator
+  ansible.builtin.wait_for:
+    host: "{{ booth_arbitrator_ip }}"
+    port: "{{ booth_port }}"
+    timeout: 3
+    state: started
+  register: arbitrator_check
+  ignore_errors: true
+
+- name: Set Arbitrator Status Fact
+  ansible.builtin.set_fact:
+    arbitrator_status: "{{ 'Reachable' if arbitrator_check is success else 'Unreachable' }}"
+
+# 2. Check Peers via PCS output
+- name: Check Peer Visibility in Booth Status
+  ansible.builtin.shell: "pcs booth status | grep -i 'peers:' -A 5"
+  register: peer_check_output
+  changed_when: false
+  when: booth_running
+
+- name: Analyze Peer Response
+  ansible.builtin.set_fact:
+    peers_responsive: "{{ 'yes' if ('lost' not in peer_check_output.stdout and 'dead' not in peer_check_output.stdout) else 'no' }}"
+  when: booth_running

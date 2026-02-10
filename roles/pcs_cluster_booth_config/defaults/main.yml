@@ -1,9 +1,6 @@
-# The specific ticket name you are tracking (e.g., 'ticket-A')
-booth_ticket_name: "ticket-A"
-
-# The path to the configuration file
-booth_conf_path: "/etc/booth/booth.conf"
-
-# The Inventory group name containing all cluster nodes AND booth arbitrators
-# This is used to compare config files across all relevant servers
-booth_all_nodes_group: "all"
+---
+# defaults/main.yml
+booth_ticket_name: "ticketA"
+booth_config_path: "/etc/booth/booth.conf"
+booth_arbitrator_ip: "192.168.1.100"   # Replace with actual Arbitrator IP
+booth_port: 9929                       # Default Booth port

@@ -1,0 +1,9 @@
+---
+# tasks/verify_vars.yml
+- name: Verify that required variables are defined
+  ansible.builtin.assert:
+    that:
+      - booth_ticket_name is defined
+      - booth_config_path is defined
+      - booth_arbitrator_ip is defined
+    fail_msg: "CRITICAL: One or more required variables (ticket name, config path, arbitrator IP) are missing."
