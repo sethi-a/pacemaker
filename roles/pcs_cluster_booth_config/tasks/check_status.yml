@@ -5,18 +5,19 @@
   command: pcs booth status
   register: booth_status_output
   changed_when: false
-  ignore_errors: true
+  failed_when: false # Soft fail: continue even if command fails (e.g., service stopped)
 
 - name: Determine if Booth is running
   ansible.builtin.set_fact:
     booth_running: "{{ booth_status_output.rc == 0 }}"
 
 - name: Parse Ticket Ownership
-  ansible.builtin.shell: "pcs booth status | grep 'ticket: {{ booth_ticket_name }}' | awk -F'owned by ' '{print $2}'"
+  shell: "pcs booth status | grep 'ticket: {{ booth_ticket_name }}' | awk -F'owned by ' '{print $2}'"
   register: ticket_owner_output
   when: booth_running
   changed_when: false
+  failed_when: false
 
 - name: Set Ticket Owner Fact
   ansible.builtin.set_fact:
-    ticket_owner: "{{ ticket_owner_output.stdout | trim if (ticket_owner_output.stdout is defined and ticket_owner_output.stdout | length > 0) else 'None/Unknown' }}"
+    ticket_owner: "{{ ticket_owner_output.stdout | trim if (booth_running and ticket_owner_output is defined and ticket_owner_output.stdout | length > 0) else 'Unknown/Not Running' }}"

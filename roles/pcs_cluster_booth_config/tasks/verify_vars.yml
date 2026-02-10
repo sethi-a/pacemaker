@@ -1,7 +1,7 @@
 ---
 # tasks/verify_vars.yml
 - name: Verify that required variables are defined
-  ansible.builtin.assert:
+  assert:
     that:
       - booth_ticket_name is defined
       - booth_config_path is defined

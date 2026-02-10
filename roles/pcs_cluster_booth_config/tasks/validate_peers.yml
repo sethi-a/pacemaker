@@ -1,28 +1,43 @@
 ---
 # tasks/validate_peers.yml
 
-# 1. Check Arbitrator Connectivity via Network
-- name: Validate connectivity to Arbitrator
-  ansible.builtin.wait_for:
+# 1. Check Arbitrator Connectivity (Run ONLY on Cluster Nodes)
+- name: Validate connectivity to Arbitrator (from Cluster Nodes)
+  wait_for:
     host: "{{ booth_arbitrator_ip }}"
     port: "{{ booth_port }}"
-    timeout: 3
+    timeout: 2
     state: started
   register: arbitrator_check
   ignore_errors: true
+  when: not is_arbitrator
 
 - name: Set Arbitrator Status Fact
-  ansible.builtin.set_fact:
-    arbitrator_status: "{{ 'Reachable' if arbitrator_check is success else 'Unreachable' }}"
+  set_fact:
+    arbitrator_reachability: >-
+      {% if is_arbitrator %}
+      Self (Localhost)
+      {% elif arbitrator_check is success %}
+      REACHABLE
+      {% else %}
+      UNREACHABLE (Port {{ booth_port }})
+      {% endif %}
 
-# 2. Check Peers via PCS output
+# 2. Check Peers via PCS output (Run on ALL nodes)
 - name: Check Peer Visibility in Booth Status
-  ansible.builtin.shell: "pcs booth status | grep -i 'peers:' -A 5"
+  shell: "pcs booth status | grep -i 'peers:' -A 5"
   register: peer_check_output
   changed_when: false
+  failed_when: false
   when: booth_running
 
 - name: Analyze Peer Response
-  ansible.builtin.set_fact:
-    peers_responsive: "{{ 'yes' if ('lost' not in peer_check_output.stdout and 'dead' not in peer_check_output.stdout) else 'no' }}"
-  when: booth_running
+  set_fact:
+    peers_responsive: >-
+      {% if not booth_running %}
+      N/A (Booth Stopped)
+      {% elif peer_check_output.stdout is defined and ('lost' in peer_check_output.stdout or 'dead' in peer_check_output.stdout) %}
+      ISSUES DETECTED (Lost/Dead Peers)
+      {% else %}
+      OK (Peers Visible)
+      {% endif %}

@@ -2,16 +2,19 @@
 # tasks/main.yml
 
 - name: "STEP 1: Verify Required Variables"
-  ansible.builtin.import_tasks: verify_vars.yml
+  import_tasks: verify_vars.yml
 
-- name: "STEP 2: Check Booth Status and Ticket Ownership"
-  ansible.builtin.import_tasks: check_status.yml
+# We use a block to group tasks, but individual tasks handle errors gracefully
+- name: "Run Booth Configuration Checks"
+  block:
+    - name: "STEP 2: Check Booth Status and Ticket Ownership"
+      import_tasks: check_status.yml
 
-- name: "STEP 3: Validate Peers and Arbitrator Connectivity"
-  ansible.builtin.import_tasks: validate_peers.yml
+    - name: "STEP 3: Validate Peers and Arbitrator Connectivity"
+      import_tasks: validate_peers.yml
 
-- name: "STEP 4: Validate Booth Configuration Consistency"
-  ansible.builtin.import_tasks: validate_config.yml
+    - name: "STEP 4: Validate Booth Configuration Consistency"
+      import_tasks: validate_config.yml
 
-- name: "STEP 5: Generate and Display Report"
-  ansible.builtin.import_tasks: report.yml
+    - name: "STEP 5: Generate and Display Report"
+      import_tasks: report.yml

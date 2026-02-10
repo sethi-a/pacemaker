@@ -6,25 +6,36 @@
     path: "{{ booth_config_path }}"
   register: booth_conf_file
 
-- name: Fail if configuration file is missing
-  fail:
-    msg: "booth.conf missing on {{ inventory_hostname }}"
-  when: not booth_conf_file.stat.exists
-
 - name: Calculate configuration checksum
-  stat:
+  ansible.builtin.stat:
     path: "{{ booth_config_path }}"
     checksum_algorithm: sha256
   register: booth_conf_checksum
   when: booth_conf_file.stat.exists
 
-# Aggregate checksums from all hosts in the play to compare them
-- name: Aggregate checksums for comparison
+- name: Set Local Config Facts
   set_fact:
-    all_checksums: "{{ ansible_play_hosts | map('extract', hostvars, ['booth_conf_checksum', 'stat', 'checksum']) | list }}"
+    config_status: "{{ 'Present' if booth_conf_file.stat.exists else 'MISSING' }}"
+    current_node_checksum: "{{ booth_conf_checksum.stat.checksum if booth_conf_file.stat.exists else 'MISSING_FILE_' + inventory_hostname }}"
+
+# -------------------------------------------------------------------------
+# LOGIC: Define Arbitrator as Source of Truth
+# -------------------------------------------------------------------------
+
+- name: Identify Arbitrator Checksum (Run Once per Play)
+  ansible.builtin.set_fact:
+    arbitrator_checksum: "{{ hostvars[item]['current_node_checksum'] }}"
+  loop: "{{ ansible_play_hosts }}"
+  when: hostvars[item]['is_arbitrator'] | default(false) | bool
+  run_once: true
+  ignore_errors: true 
+
+- name: Set Default Arbitrator Checksum if Missing
+  ansible.builtin.set_fact:
+    arbitrator_checksum: "ARBITRATOR_NOT_FOUND"
+  when: arbitrator_checksum is not defined
   run_once: true
 
-- name: Verify Configuration Alignment
+- name: Verify Alignment with Arbitrator
   set_fact:
-    config_is_aligned: "{{ all_checksums | unique | length == 1 }}"
-  run_once: true
+    config_is_aligned: "{{ current_node_checksum == arbitrator_checksum }}"
