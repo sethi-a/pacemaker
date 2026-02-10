@@ -1,0 +1,105 @@
+---
+# ---------------------------------------------------------
+# 1. Verification of Required Variables
+# ---------------------------------------------------------
+- name: Verify required variables are defined
+  assert:
+    that:
+      - booth_ticket_name is defined
+      - booth_conf_path is defined
+    fail_msg: "CRITICAL: 'booth_ticket_name' or 'booth_conf_path' is undefined."
+
+# ---------------------------------------------------------
+# 2. Config File Validation (Consistency Check)
+# ---------------------------------------------------------
+- name: Validate existence of booth.conf
+  stat:
+    path: "{{ booth_conf_path }}"
+    checksum_algorithm: sha256
+  register: booth_conf_stat
+
+- name: Fail if booth.conf is missing
+  fail:
+    msg: "CRITICAL: booth.conf missing on {{ inventory_hostname }}"
+  when: not booth_conf_stat.stat.exists
+
+- name: Group config checksums
+  set_fact:
+    booth_checksums: "{{ groups[booth_all_nodes_group] | map('extract', hostvars, ['booth_conf_stat', 'stat', 'checksum']) | list }}"
+  run_once: true
+
+- name: Fail if configuration is not aligned across all nodes
+  fail:
+    msg: "CRITICAL: booth.conf checksum mismatch detected across cluster nodes/arbitrators."
+  run_once: true
+  when: booth_checksums | unique | length > 1
+
+# ---------------------------------------------------------
+# 3. PCS Booth Status Execution
+# ---------------------------------------------------------
+- name: Execute pcs booth status command
+  command: pcs booth status
+  register: booth_output
+  changed_when: false
+  failed_when: false
+
+- name: Fail if Booth is not running
+  fail:
+    msg: "CRITICAL: Booth does not appear to be running (pcs booth status returned error)."
+  when: booth_output.rc != 0
+
+# ---------------------------------------------------------
+# 4. Deep Inspection (Parsing Output)
+# ---------------------------------------------------------
+- name: Parse Ticket Status
+  set_fact:
+    ticket_status: "{{ 'granted' if ('ticket: ' + booth_ticket_name + ', leader: ' in booth_output.stdout) else 'missing' }}"
+    current_leader: "{{ booth_output.stdout | regex_search('leader: ([a-zA-Z0-9.-]+)', '\\1') | first | default('none') }}"
+
+- name: Parse Connectivity (Arbitrators vs Peers)
+  set_fact:
+    # Looks for lines indicating lost communication
+    failed_peers: "{{ booth_output.stdout_lines | select('search', 'lost') | list }}"
+    arbitrator_visible: "{{ 'arbitrator' in booth_output.stdout and 'lost' not in booth_output.stdout }}"
+
+# ---------------------------------------------------------
+# 5. Validation Logic (The "Fail If" Checks)
+# ---------------------------------------------------------
+- name: Validate Ticket is Set
+  fail:
+    msg: "CRITICAL: Ticket '{{ booth_ticket_name }}' is NOT granted to any site."
+  when: ticket_status == 'missing'
+
+- name: Validate Leader Exists
+  fail:
+    msg: "CRITICAL: No leader found for the booth cluster."
+  when: current_leader == 'none'
+
+- name: Validate Peers Response
+  fail:
+    msg: "CRITICAL: One or more peers are not responding: {{ failed_peers }}"
+  when: failed_peers | length > 0
+
+- name: Validate Arbitrator Response
+  fail:
+    msg: "CRITICAL: Arbitrator is not visible or not responding."
+  when: not arbitrator_visible
+
+# ---------------------------------------------------------
+# 6. Reporting
+# ---------------------------------------------------------
+- name: Display Booth Configuration Report
+  debug:
+    msg:
+      - "========================================"
+      - "   PACEMAKER BOOTH CONFIGURATION CHECK  "
+      - "========================================"
+      - "Node Checked    : {{ inventory_hostname }}"
+      - "Config Sync     : OK (All nodes match)"
+      - "Booth Status    : RUNNING"
+      - "Ticket Name     : {{ booth_ticket_name }}"
+      - "Ticket Status   : {{ ticket_status | upper }}"
+      - "Current Leader  : {{ current_leader }}"
+      - "Arbitrator      : CONNECTED"
+      - "Peers           : CONNECTED"
+      - "========================================"
