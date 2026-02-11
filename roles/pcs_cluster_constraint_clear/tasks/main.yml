@@ -1,7 +1,7 @@
 ---
 # 1. Verification of the required variables
 - name: Verify required variables are defined and valid
-  assert:
+  ansible.builtin.assert:
     that:
       - pcs_resources_to_clear is defined
       - pcs_resources_to_clear | type_debug == 'list'
@@ -10,7 +10,7 @@
 
 # 2. Display summary of resources
 - name: Display summary of resources to be cleared
-  debug:
+  ansible.builtin.debug:
     msg: "Initiating constraint cleanup for the following resources/groups: {{ pcs_resources_to_clear | join(', ') }}"
 
 # 3. Run the pcs resource clear for each resource/group
@@ -29,12 +29,12 @@
 
 # 7. (Part 1) Set the facts to be able to access between the runs
 - name: Set fact with current constraints status
-  set_fact:
+  ansible.builtin.set_fact:
     remaining_constraints: "{{ constraint_check.stdout }}"
     pcs_cleanup_requires_retry: false
 
 - name: Determine if any manual constraints are still present for our resources
-  set_fact:
+  ansible.builtin.set_fact:
     pcs_cleanup_requires_retry: true
   loop: "{{ pcs_resources_to_clear }}"
   when: "item in remaining_constraints and pcs_manual_constraint_pattern in remaining_constraints"
@@ -56,22 +56,22 @@
 
 # 7. (Part 2) Update the facts with the final state
 - name: Set final constraint facts for inter-run access
-  set_fact:
+  ansible.builtin.set_fact:
     final_remaining_constraints: "{{ final_constraint_check.stdout }}"
     pcs_cleanup_failed: false
 
 - name: Flag if cleanup ultimately failed
-  set_fact:
+  ansible.builtin.set_fact:
     pcs_cleanup_failed: true
   loop: "{{ pcs_resources_to_clear }}"
   when: "item in final_remaining_constraints and pcs_manual_constraint_pattern in final_remaining_constraints"
 
 # 6. Fail if the constraints cleanup did not succeed
 - name: Fail if the constraints cleanup did not succeed
-  fail:
+  ansible.builtin.fail:
     msg: "Failed to clear all constraints. The following output still shows manual bans/preferences: {{ final_remaining_constraints }}"
   when: pcs_cleanup_failed | bool
 
 - name: Final Success Message
-  debug:
+  ansible.builtin.debug:
     msg: "All constraints successfully cleared for {{ pcs_resources_to_clear | join(', ') }}."
