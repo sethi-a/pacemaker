@@ -1,0 +1,62 @@
+---
+# 1. Verification of the required variables
+- name: Verify required variables are defined
+  ansible.builtin.assert:
+    that:
+      - maintenance_enabled is defined
+      - maintenance_enabled | type_debug == 'bool'
+    fail_msg: "The variable 'maintenance_enabled' must be defined and set to a boolean (true/false)."
+
+# 2. Verify if there are any issues with the cluster importing the cluster healthcheck tasks
+- name: "Run pcs status for health check"
+  command: pcs status
+  register: pcs_status
+  changed_when: false
+  run_once: true
+
+- name: "Fail if cluster has stopped or failed resources"
+  ansible.builtin.fail:
+    msg: "Cluster is not healthy. Found 'FAILED' or 'Stopped' resources in 'pcs status'. Please resolve before toggling maintenance mode."
+  when: "'FAILED' in pcs_status.stdout or 'Stopped' in pcs_status.stdout"
+  run_once: true
+
+# 3. Verify if the cluster maintenance has been already set.
+- name: Check current cluster maintenance mode status
+  ansible.builtin.command: pcs property show maintenance-mode
+  register: current_maintenance_check
+  changed_when: false
+  failed_when: false
+  run_once: true
+
+- name: Parse current maintenance state
+  ansible.builtin.set_fact:
+    is_currently_maintenance: "{{ 'true' in current_maintenance_check.stdout | lower }}"
+
+# 4 & 5. Set/Unset and Verify (Skipped if already in the desired state)
+- name: Modify and Verify cluster maintenance state
+  when: is_currently_maintenance != maintenance_enabled
+  run_once: true
+  block:
+    - name: Set cluster maintenance mode
+      ansible.builtin.command: pcs property set maintenance-mode=true
+      when: maintenance_enabled
+
+    - name: Unset cluster maintenance mode
+      ansible.builtin.command: pcs property set maintenance-mode=false
+      when: not maintenance_enabled
+
+    - name: Verify new cluster maintenance mode status
+      ansible.builtin.command: pcs property show maintenance-mode
+      register: verify_maintenance_check
+      changed_when: false
+
+# 6. Display the report
+- name: Display the maintenance report
+  ansible.builtin.debug:
+    msg:
+      - "=== Cluster Maintenance Report ==="
+      - "Target State Requested : {{ 'Enabled' if maintenance_enabled else 'Disabled' }}"
+      - "Previous State         : {{ 'Enabled' if is_currently_maintenance else 'Disabled' }}"
+      - "Final State            : {{ 'Enabled' if maintenance_enabled else 'Disabled' }}"
+      - "Action Taken           : {{ 'None (Already in desired state)' if is_currently_maintenance == maintenance_enabled else 'State Changed successfully' }}"
+  run_once: true
