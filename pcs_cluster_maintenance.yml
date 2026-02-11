@@ -1,7 +1,7 @@
 ---
 - name: Test Pacemaker Cluster Maintenance Role Lifecycle
   # Replace 'cluster_nodes' with your actual inventory group name
-  hosts: platform_cluster
+  hosts: pacemaker_cluster
   become: true
 
   pre_tasks:
