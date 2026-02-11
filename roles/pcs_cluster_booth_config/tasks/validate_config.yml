@@ -2,7 +2,7 @@
 # tasks/validate_config.yml
 
 - name: Check existence of booth.conf
-  stat:
+  ansible.builtin.stat:
     path: "{{ booth_config_path }}"
   register: booth_conf_file
 
@@ -14,7 +14,7 @@
   when: booth_conf_file.stat.exists
 
 - name: Set Local Config Facts
-  set_fact:
+  ansible.builtin.set_fact:
     config_status: "{{ 'Present' if booth_conf_file.stat.exists else 'MISSING' }}"
     current_node_checksum: "{{ booth_conf_checksum.stat.checksum if booth_conf_file.stat.exists else 'MISSING_FILE_' + inventory_hostname }}"
 
@@ -28,7 +28,7 @@
   loop: "{{ ansible_play_hosts }}"
   when: hostvars[item]['is_arbitrator'] | default(false) | bool
   run_once: true
-  ignore_errors: true 
+  ignore_errors: true
 
 - name: Set Default Arbitrator Checksum if Missing
   ansible.builtin.set_fact:

@@ -2,19 +2,37 @@
 # tasks/main.yml
 
 - name: "STEP 1: Verify Required Variables"
-  import_tasks: verify_vars.yml
+  include_tasks: verify_vars.yml
 
 # We use a block to group tasks, but individual tasks handle errors gracefully
 - name: "Run Booth Configuration Checks"
   block:
     - name: "STEP 2: Check Booth Status and Ticket Ownership"
-      import_tasks: check_status.yml
+      include_tasks: check_status.yml
 
     - name: "STEP 3: Validate Peers and Arbitrator Connectivity"
-      import_tasks: validate_peers.yml
+      include_tasks: validate_peers.yml
 
     - name: "STEP 4: Validate Booth Configuration Consistency"
-      import_tasks: validate_config.yml
+      include_tasks: validate_config.yml
 
     - name: "STEP 5: Generate and Display Report"
-      import_tasks: report.yml
+      include_tasks: report.yml
+
+    - name: "STEP 6: Enforce Strict Health Requirements (Hard Fail)"
+      ansible.builtin.fail:
+        msg: |
+          CRITICAL: CLUSTER HEALTH CHECK FAILED ON {{ inventory_hostname }}
+          ---------------------------------------------------
+          - Ticket / Leader Status : {{ ticket_owner }}
+          - Peer Responsiveness    : {{ peers_responsive }}
+          - Arbitrator Status      : {{ arbitrator_reachability }}
+          - Config File Alignment  : {{ 'PASSED' if config_is_aligned else 'FAILED - MISMATCH/MISSING' }}
+          Please review the report printed above for full details.
+      when: >
+        booth_enforce_health | bool and
+        ('Unknown' in ticket_owner or
+        'None' in ticket_owner or
+        'ISSUES DETECTED' in peers_responsive or
+        'UNREACHABLE' in arbitrator_reachability or
+        not config_is_aligned)

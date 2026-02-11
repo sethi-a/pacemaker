@@ -4,3 +4,4 @@ booth_ticket_name: "ticketA"
 booth_config_path: "/etc/booth/booth.conf"
 booth_arbitrator_ip: "192.168.1.100"   # Replace with actual Arbitrator IP
 booth_port: 9929                       # Default Booth port
+booth_enforce_health: true

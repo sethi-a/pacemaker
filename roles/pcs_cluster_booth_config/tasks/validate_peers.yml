@@ -3,7 +3,7 @@
 
 # 1. Check Arbitrator Connectivity (Run ONLY on Cluster Nodes)
 - name: Validate connectivity to Arbitrator (from Cluster Nodes)
-  wait_for:
+  ansible.builtin.wait_for:
     host: "{{ booth_arbitrator_ip }}"
     port: "{{ booth_port }}"
     timeout: 2
@@ -13,7 +13,7 @@
   when: not is_arbitrator
 
 - name: Set Arbitrator Status Fact
-  set_fact:
+  ansible.builtin.set_fact:
     arbitrator_reachability: >-
       {% if is_arbitrator %}
       Self (Localhost)
@@ -25,14 +25,14 @@
 
 # 2. Check Peers via PCS output (Run on ALL nodes)
 - name: Check Peer Visibility in Booth Status
-  shell: "pcs booth status | grep -i 'peers:' -A 5"
+  ansible.builtin.shell: "pcs booth status | grep -i 'peers:' -A 5"
   register: peer_check_output
   changed_when: false
   failed_when: false
   when: booth_running
 
 - name: Analyze Peer Response
-  set_fact:
+  ansible.builtin.set_fact:
     peers_responsive: >-
       {% if not booth_running %}
       N/A (Booth Stopped)
