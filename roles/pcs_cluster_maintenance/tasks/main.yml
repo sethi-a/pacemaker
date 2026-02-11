@@ -22,7 +22,7 @@
 
 # 3. Verify if the cluster maintenance has been already set.
 - name: Check current cluster maintenance mode status
-  ansible.builtin.command: pcs property show maintenance-mode
+  command: pcs property show maintenance-mode
   register: current_maintenance_check
   changed_when: false
   failed_when: false
