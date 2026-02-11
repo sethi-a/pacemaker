@@ -1,0 +1,77 @@
+---
+# 1. Verification of the required variables
+- name: Verify required variables are defined and valid
+  assert:
+    that:
+      - pcs_resources_to_clear is defined
+      - pcs_resources_to_clear | type_debug == 'list'
+      - pcs_resources_to_clear | length > 0
+    fail_msg: "Variable 'pcs_resources_to_clear' must be defined, must be a list, and cannot be empty."
+
+# 2. Display summary of resources
+- name: Display summary of resources to be cleared
+  debug:
+    msg: "Initiating constraint cleanup for the following resources/groups: {{ pcs_resources_to_clear | join(', ') }}"
+
+# 3. Run the pcs resource clear for each resource/group
+- name: Run pcs resource clear for each specified resource
+  command: pcs resource clear {{ item }}
+  loop: "{{ pcs_resources_to_clear }}"
+  register: clear_attempt_1
+  changed_when: clear_attempt_1.rc == 0
+  ignore_errors: yes
+
+# 4. Check if there are any constraints/bans left
+- name: Check current location constraints
+  command: pcs constraint location
+  register: constraint_check
+  changed_when: false
+
+# 7. (Part 1) Set the facts to be able to access between the runs
+- name: Set fact with current constraints status
+  set_fact:
+    remaining_constraints: "{{ constraint_check.stdout }}"
+    pcs_cleanup_requires_retry: false
+
+- name: Determine if any manual constraints are still present for our resources
+  set_fact:
+    pcs_cleanup_requires_retry: true
+  loop: "{{ pcs_resources_to_clear }}"
+  when: "item in remaining_constraints and pcs_manual_constraint_pattern in remaining_constraints"
+
+# 5. Repeat the clear process (if constraints were left)
+- name: Repeat the pcs resource clear process if constraints remain
+  command: pcs resource clear {{ item }}
+  loop: "{{ pcs_resources_to_clear }}"
+  when: pcs_cleanup_requires_retry | bool
+  register: clear_attempt_2
+  changed_when: clear_attempt_2.rc == 0
+  ignore_errors: yes
+
+# Check again for the final validation
+- name: Re-check location constraints after second attempt
+  command: pcs constraint location
+  register: final_constraint_check
+  changed_when: false
+
+# 7. (Part 2) Update the facts with the final state
+- name: Set final constraint facts for inter-run access
+  set_fact:
+    final_remaining_constraints: "{{ final_constraint_check.stdout }}"
+    pcs_cleanup_failed: false
+
+- name: Flag if cleanup ultimately failed
+  set_fact:
+    pcs_cleanup_failed: true
+  loop: "{{ pcs_resources_to_clear }}"
+  when: "item in final_remaining_constraints and pcs_manual_constraint_pattern in final_remaining_constraints"
+
+# 6. Fail if the constraints cleanup did not succeed
+- name: Fail if the constraints cleanup did not succeed
+  fail:
+    msg: "Failed to clear all constraints. The following output still shows manual bans/preferences: {{ final_remaining_constraints }}"
+  when: pcs_cleanup_failed | bool
+
+- name: Final Success Message
+  debug:
+    msg: "All constraints successfully cleared for {{ pcs_resources_to_clear | join(', ') }}."

@@ -1,0 +1,18 @@
+---
+- name: Automated Pacemaker Resource Constraint Cleanup
+  # Target the specific group in your inventory that contains your cluster nodes
+  hosts: pacemaker_cluster_nodes 
+  # Elevate privileges to root to run pcs commands
+  become: yes 
+  # We only need to run this once per cluster, so running on the first node is usually sufficient
+  run_once: true 
+
+  vars:
+    # Define the list of resources or resource groups you want to clear
+    pcs_resources_to_clear:
+      - virtual_ip_resource
+      - database_service_group
+      - web_server_resource
+
+  roles:
+    - role: pcs_cluster_constraint_clear

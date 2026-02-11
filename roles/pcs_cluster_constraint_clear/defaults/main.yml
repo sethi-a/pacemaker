@@ -1,0 +1,7 @@
+---
+# List of resources or groups to clear constraints/bans from
+pcs_resources_to_clear: []
+
+# A pattern to search for in the constraint output to identify manual bans/preferences. 
+# Pacemaker usually prepends these with 'cli-ban' or 'cli-prefer' when moved manually.
+pcs_manual_constraint_pattern: "cli-"
