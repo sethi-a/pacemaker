@@ -1,0 +1,34 @@
+---
+- name: Test Pacemaker Cluster Maintenance Role Lifecycle
+  # Replace 'cluster_nodes' with your actual inventory group name
+  hosts: platform_cluster
+  become: true
+
+  tasks:
+    - name: "Phase 1: Put the cluster into maintenance mode"
+      ansible.builtin.include_role:
+        name: pcs_cluster_maintenance
+      vars:
+        maintenance_enabled: true
+
+    - name: "Phase 2: Simulate maintenance work"
+      ansible.builtin.debug:
+        msg: >
+          "The cluster is now safely in maintenance mode. 
+           Pacemaker will not trigger failovers. 
+           This is where your OS patching, package updates, or reboot tasks would go."
+
+    # Optional: A brief pause just to let you verify it manually on the server if you want
+    - name: "Pause for 10 seconds to simulate work (and allow manual verification)"
+      ansible.builtin.pause:
+        seconds: 10
+
+    - name: "Phase 3: Take the cluster out of maintenance mode"
+      ansible.builtin.include_role:
+        name: pcs_cluster_maintenance
+      vars:
+        maintenance_enabled: false
+
+    - name: "Phase 4: Final verification"
+      ansible.builtin.debug:
+        msg: "Test complete! The cluster should now be fully online and managing resources."
