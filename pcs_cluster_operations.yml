@@ -17,7 +17,7 @@
       when: active_cluster_node is not defined or active_cluster_node == ""
 
   roles:
-    # - role: pacemaker_health_check
+    - role: pacemaker_health_check
 
     # - role: pacemaker_cluster_backup
     #   when: inventory_hostname == active_cluster_node
