@@ -9,7 +9,6 @@
       ignore_errors: true
 
     - name: Assert Consensus on DC
-      run_once: true
       assert:
         that:
           - >-
@@ -24,7 +23,6 @@
       ignore_errors: true
       
     - name: Record Split Brain Failure
-      run_once: true
       set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 9: ' + split_brain_result.msg] }}"
       when: 
