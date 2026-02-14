@@ -1,6 +1,6 @@
 ---
 - name: Pacemaker Cluster Opertions
-  hosts: cluster_nodes  # MUST TARGET ALL NODES
+  hosts: pacemaker_cluster  # MUST TARGET ALL NODES
   become: true
   gather_facts: true
   

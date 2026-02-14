@@ -1,7 +1,7 @@
 ---
 - name: Automated Pacemaker Resource Constraint Cleanup
   # Target the specific group in your inventory that contains your cluster nodes
-  hosts: pacemaker_cluster_nodes 
+  hosts: pacemaker_cluster
   # Elevate privileges to root to run pcs commands
   become: yes 
   # We only need to run this once per cluster, so running on the first node is usually sufficient
