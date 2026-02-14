@@ -30,7 +30,7 @@
 
     - name: Record Event Failures
       set_fact:
-        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 7: ' + item.msg] }}"
+        health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 7: ' + event_check_result.msg] }}"
       when: 
         - not (pcs_status_events.failed | default(false))
         - event_check_result.failed | bool
