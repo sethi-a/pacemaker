@@ -9,12 +9,12 @@
       ignore_errors: true
 
     - name: Record Stonith Command Failure
-      set_fact:
+      ansible.builtin.set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 6: Unable to retrieve Stonith status. Error: ' + pcs_stonith.stderr | default('Command failed')] }}"
       when: pcs_stonith.failed | bool
 
     - name: Assert Stonith State
-      assert:
+      ansible.builtin.assert:
         that:
           - "item.condition"
         fail_msg: "{{ item.msg }}"
@@ -30,7 +30,7 @@
         - pcs_stonith.stdout is defined
 
     - name: Record Stonith Failures
-      set_fact:
+      ansible.builtin.set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 6: ' + item.msg] }}"
       loop: "{{ stonith_check_results.results | default([]) }}"
       loop_control:

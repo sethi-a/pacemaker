@@ -9,5 +9,5 @@
       ignore_errors: true
 
     - name: Save Status Snapshot
-      set_fact:
+      ansible.builtin.set_fact:
         cluster_status_output: "{{ final_cluster_status.stdout | default('Error: Unable to retrieve cluster status.') }}"

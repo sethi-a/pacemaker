@@ -12,17 +12,12 @@
       ignore_errors: true
 
     - name: Record Critical PCS Failure
-      set_fact:
+      ansible.builtin.set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 4: Critical - Unable to retrieve cluster status. Error: ' + pcs_status.stderr | default('Command failed')] }}"
       when: pcs_status.failed | bool
 
-    - name: print the output
-      debug:
-        msg: "{{ pcs_status.stdout | default('') }}"
-      ignore_errors: true
-
     - name: Assert Node Health States
-      assert:
+      ansible.builtin.assert:
         that:
           - "item.pattern not in pcs_status.stdout | default('')"
         fail_msg: "{{ item.msg }}"
@@ -37,7 +32,7 @@
         - pcs_status.stdout is defined
 
     - name: Record Node Health Failures
-      set_fact:
+      ansible.builtin.set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 4: ' + item.msg] }}"
       loop: "{{ node_health_results.results | default([]) }}"
       loop_control:

@@ -14,7 +14,7 @@
       when: pcs_status_events.failed | bool
 
     - name: Assert No Failed Actions
-      assert:
+      ansible.builtin.assert:
         that:
           - "'Failed Resource Actions:' not in pcs_status_events.stdout"
         fail_msg: "Cluster reports Failed Resource Actions. Check 'pcs status'."
@@ -29,7 +29,7 @@
         var: event_check_result
 
     - name: Record Event Failures
-      set_fact:
+      ansible.builtin.set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 7: ' + event_check_result.msg] }}"
       when: 
         - not (pcs_status_events.failed | default(false))

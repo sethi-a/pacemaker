@@ -12,12 +12,12 @@
       ignore_errors: true
 
     - name: Record Properties Command Failure
-      set_fact:
+      ansible.builtin.set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 5: Unable to retrieve properties. Error: ' + pcs_properties.stderr | default('Command failed')] }}"
       when: pcs_properties is not defined or (pcs_properties.failed is defined and pcs_properties.failed)
 
     - name: Assert Required Properties Exist
-      assert:
+      ansible.builtin.assert:
         that:
           - "item.pattern in pcs_properties.stdout"
         fail_msg: "{{ item.msg }}"
@@ -31,7 +31,7 @@
         - pcs_properties.stdout is defined
 
     - name: Assert Forbidden Properties Absent
-      assert:
+      ansible.builtin.assert:
         that:
           - "item.pattern not in pcs_properties.stdout"
         fail_msg: "{{ item.msg }}"
@@ -45,7 +45,7 @@
         - pcs_properties.stdout is defined
 
     - name: Record Property Failures
-      set_fact:
+      ansible.builtin.set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 5: ' + item.msg] }}"
       # Loop over both result lists safely
       loop: "{{ (prop_exist_results.results | default([])) + (prop_absent_results.results | default([])) }}"

@@ -20,7 +20,7 @@
       ignore_errors: true
 
     - name: Record Service Failures
-      set_fact:
+      ansible.builtin.set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 2: ' + item.msg] }}"
       loop: "{{ service_check_result.results | default([])}}"
       loop_control:

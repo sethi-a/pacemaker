@@ -4,7 +4,7 @@
   delegate_to: localhost
   block:
     - name: Build Executive Report
-      set_fact:
+      ansible.builtin.set_fact:
         final_report: |
           =============================================================
           PACEMAKER CLUSTER HEALTH SUMMARY
@@ -82,14 +82,14 @@
           =============================================================
 
     - name: Set Cluster Failure Flag
-      set_fact:
+      ansible.builtin.set_fact:
         cluster_has_failures: "{{ 'STATUS: [ FAILED ]' in final_report or 'CRITICAL' in final_report }}"
 
     - name: "PRINT SUMMARY REPORT"
-      debug:
+      ansible.builtin.debug:
         msg: "{{ final_report.split('\n') }}"
 
     - name: Fail Playbook if Critical Errors Exist
-      fail:
+      ansible.builtin.fail:
         msg: "Cluster Health Check Failed. See Report above."
       when: cluster_has_failures | bool

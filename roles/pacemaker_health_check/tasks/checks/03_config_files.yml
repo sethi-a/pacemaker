@@ -24,7 +24,7 @@
       ignore_errors: true
 
     - name: Record File Failures
-      set_fact:
+      ansible.builtin.set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 3: ' + item.msg] }}"
       loop: "{{ file_check_result.results | default([]) }}"
       loop_control:

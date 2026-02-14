@@ -16,7 +16,7 @@
       ignore_errors: true
 
     - name: Record Variable Failures
-      set_fact:
+      ansible.builtin.set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 1: ' + item.msg] }}"
       loop: "{{ var_check_result.results | default([]) }}"
       loop_control:
