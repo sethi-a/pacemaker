@@ -24,6 +24,10 @@
         - not (pcs_status_events.failed | default(false))
         - pcs_status_events.stdout is defined
 
+    - name: Print the variable for debugging
+      debug:
+        var: event_check_result
+        
     - name: Record Event Failures
       set_fact:
         health_check_errors: "{{ health_check_errors | default([]) + ['SECTION 7: ' + item.msg] }}"
