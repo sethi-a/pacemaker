@@ -10,7 +10,7 @@
           PACEMAKER CLUSTER HEALTH SUMMARY
           =============================================================
           Timestamp: {{ ansible_date_time.iso8601 }}
-          Nodes Checked: {{ groups['cluster_nodes'] | length }}
+          Nodes Checked: {{ groups['pacemaker_cluster'] | length }}
           
           -------------------------------------------------------------
           SCOPE OF CHECKS (LEGEND)
@@ -28,7 +28,7 @@
           -------------------------------------------------------------
           LOCAL NODE CHECKS (Sections 1-3)
           -------------------------------------------------------------
-          {% for host in groups['cluster_nodes'] %}
+          {% for host in groups['pacemaker_cluster'] %}
           {%- set host_vars = hostvars[host] | default({}) -%}
           {%- set host_errors = host_vars.get('health_check_errors', []) -%}
           {%- set local_issues = [] -%}

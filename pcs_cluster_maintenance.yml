@@ -1,6 +1,5 @@
 ---
 - name: Test Pacemaker Cluster Maintenance Role Lifecycle
-  # Replace 'cluster_nodes' with your actual inventory group name
   hosts: pacemaker_cluster
   become: true
 
@@ -15,7 +14,6 @@
       ansible.builtin.fail:
         msg: "No active cluster node could be determined. Aborting."
       when: active_cluster_node is not defined or active_cluster_node == ""
-
 
   tasks:
     - name: "Phase 1: Put the cluster into maintenance mode"
