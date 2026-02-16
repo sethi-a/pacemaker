@@ -1,23 +1,30 @@
 ---
-# 1. Health Check
-- name: "Health Check: Verify cluster daemon is running"
+# roles/find_active_node/tasks/main.yml
+
+- name: "1. Health Check: Verify cluster daemon is running"
   ansible.builtin.command: "pcs cluster status"
   register: cluster_health
   changed_when: false
+  ignore_errors: true
 
-# 2. Query Pacemaker
-- name: "Ask Pacemaker: Is this specific node the Designated Controller?"
-  ansible.builtin.shell: |
-    set -o pipefail
-    pcs status | grep 'Current DC:' | grep -w -q $(crm_node -n)
-  args:
-    executable: /bin/bash
-  register: dc_check
+- name: "Halt execution on this node if Health Check failed"
+  ansible.builtin.fail:
+    msg: "CRITICAL: Pacemaker is not responding on {{ inventory_hostname }}. Skipping."
+  when: cluster_health.failed
+
+- name: "2. Get this local node's internal Pacemaker name"
+  ansible.builtin.command: "crm_node -n"
+  register: local_node_name_cmd
   changed_when: false
-  failed_when: dc_check.rc not in [0, 1]
 
-# 3. Set a persistent Fact for this node
-- name: "Set fact: is_active_node"
+- name: "3. Get the Active Cluster Node (Designated Controller)"
+  ansible.builtin.shell: "crm_mon -1 | awk '/Current DC:/ {print $3}'"
+  register: active_node_cmd
+  changed_when: false
+
+- name: "4. Set Cluster Facts for playbook execution"
   ansible.builtin.set_fact:
-    # If the grep command succeeded (rc == 0), this node is active.
-    is_active_node: "{{ true if dc_check.rc == 0 else false }}"
+    active_cluster_node: "{{ active_node_cmd.stdout }}"
+    pacemaker_local_name: "{{ local_node_name_cmd.stdout }}"
+    # Evaluates to 'true' only if this node is the active DC
+    is_active_node: "{{ local_node_name_cmd.stdout == active_node_cmd.stdout }}"

@@ -1,6 +1,6 @@
 ---
 - name: "SECTION 8: Check for Stonith Events (Cluster Wide)"
-  when: is_active_node | bool
+  when: is_active_node | default(false) | bool
   block:
     - name: Get Stonith History
       shell: pcs stonith history | grep -v "Cleaning up"
