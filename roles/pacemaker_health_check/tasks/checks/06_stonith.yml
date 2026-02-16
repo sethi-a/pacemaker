@@ -1,6 +1,6 @@
 ---
 - name: "SECTION 6: Verify Stonith Resources (Cluster Wide)"
-  when: is_active_node | default(false) | bool
+  when: is_active_node | bool
   block:
     - name: Get Stonith Status
       command: pcs stonith

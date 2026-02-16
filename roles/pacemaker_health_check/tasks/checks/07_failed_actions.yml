@@ -1,6 +1,6 @@
 ---
 - name: "SECTION 7: Check for Failed Cluster Events (Cluster Wide)"
-  when: is_active_node | default(false) | bool
+  when: is_active_node | bool
   block:
     - name: Get Cluster Status (For Events)
       command: pcs status

@@ -3,7 +3,7 @@
 # SECTION 4: NODE HEALTH
 # -------------------------------------------------------
 - name: "SECTION 4: Cluster Node Health Check"
-  when: is_active_node | default(false) | bool
+  when: is_active_node | bool
   block:
     - name: Get Cluster Status (PCS)
       command: pcs status

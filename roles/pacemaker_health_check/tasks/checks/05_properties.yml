@@ -3,7 +3,7 @@
 # SECTION 5: GLOBAL PROPERTIES
 # -------------------------------------------------------
 - name: "SECTION 5: Verify Global Properties"
-  when: is_active_node | default(false) | bool
+  when: is_active_node | bool
   block:
     - name: Get Cluster Properties
       command: pcs property show --all

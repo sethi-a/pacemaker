@@ -1,6 +1,6 @@
 ---
 - name: "SECTION 10: Capture Cluster Status Snapshot"
-  when: is_active_node | default(false) | bool
+  when: is_active_node | bool
   block:
     - name: Get Final Cluster Status
       command: pcs status
