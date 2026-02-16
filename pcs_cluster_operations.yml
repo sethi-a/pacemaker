@@ -8,14 +8,7 @@
     - name: "Step: Determine Active Cluster Node"
       include_role:
         name: pacemaker_common
-        tasks_from: elect_active_node
-      run_once: true
-
-    - name: "Validate Election Success"
-      ansible.builtin.fail:
-        msg: "No active cluster node could be determined. Aborting."
-      when: active_cluster_node is not defined or active_cluster_node == ""
-
+        tasks_from: find_active_node
   roles:
     - role: pacemaker_health_check
 
