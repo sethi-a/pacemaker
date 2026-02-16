@@ -1,6 +1,6 @@
 ---
 - name: "SECTION 8: Check for Stonith Events (Cluster Wide)"
-  when: inventory_hostname == active_cluster_node
+  when: is_active_node | bool
   block:
     - name: Get Stonith History
       shell: pcs stonith history | grep -v "Cleaning up"

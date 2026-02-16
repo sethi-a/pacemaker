@@ -1,6 +1,6 @@
 ---
 - name: "SECTION 9: Split Brain Detection"
-  when: inventory_hostname == active_cluster_node
+  when: is_active_node | bool
   block:
     - name: Get DC Name
       shell: pcs status | grep "Current DC:" | awk '{print $3}'

@@ -1,6 +1,6 @@
 ---
 - name: "SECTION 10: Capture Cluster Status Snapshot"
-  when: inventory_hostname == active_cluster_node
+  when: is_active_node | bool
   block:
     - name: Get Final Cluster Status
       command: pcs status

@@ -1,35 +1,23 @@
 ---
-# -------------------------------------------------------
-# REUSABLE TASK: ELECT ACTIVE CLUSTER NODE
-# Description: Identifies a node where Pacemaker is running 
-#              to serve as the execution point for global commands.
-# Output: Sets variable 'active_cluster_node'
-# -------------------------------------------------------
-
-- name: "Election: Check Pacemaker Service Status (All Nodes)"
-  command: systemctl is-active pacemaker
-  register: pacemaker_service_check
+# 1. Health Check
+- name: "Health Check: Verify cluster daemon is running"
+  ansible.builtin.command: "pcs cluster status"
+  register: cluster_health
   changed_when: false
-  failed_when: false
-  check_mode: false # Always run this, even in --check mode
 
-- name: "Election: Designate Active Node"
-  run_once: true
-  set_fact:
-    active_cluster_node: "{{ item }}"
-  loop: "{{ ansible_play_hosts }}"
-  when: 
-    - active_cluster_node is not defined
-    - "hostvars[item]['pacemaker_service_check'].rc == 0"
+# 2. Query Pacemaker
+- name: "Ask Pacemaker: Is this specific node the Designated Controller?"
+  ansible.builtin.shell: |
+    set -o pipefail
+    pcs status | grep 'Current DC:' | grep -w -q $(crm_node -n)
+  args:
+    executable: /bin/bash
+  register: dc_check
+  changed_when: false
+  failed_when: dc_check.rc not in [0, 1]
 
-- name: "Election: Safety Fallback"
-  run_once: true
-  set_fact:
-    active_cluster_node: "{{ ansible_play_hosts[0] }}"
-    active_node_election_failed: true
-  when: active_cluster_node is not defined
-
-- name: "Election: Debug Winner"
-  run_once: true
-  debug:
-    msg: "Selected Active Node: {{ active_cluster_node }}"
+# 3. Set a persistent Fact for this node
+- name: "Set fact: is_active_node"
+  ansible.builtin.set_fact:
+    # If the grep command succeeded (rc == 0), this node is active.
+    is_active_node: "{{ true if dc_check.rc == 0 else false }}"

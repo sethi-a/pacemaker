@@ -1,6 +1,6 @@
 ---
 - name: "SECTION 7: Check for Failed Cluster Events (Cluster Wide)"
-  when: inventory_hostname == active_cluster_node
+  when: is_active_node | bool
   block:
     - name: Get Cluster Status (For Events)
       command: pcs status
