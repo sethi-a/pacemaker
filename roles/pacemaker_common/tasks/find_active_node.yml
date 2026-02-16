@@ -21,7 +21,7 @@
 # 3. Set a persistent Fact for this node
 - name: "3. Get the Active Cluster Node (Designated Controller)"
   # crm_mon -1 prints the cluster status once. awk extracts just the node name.
-  ansible.builtin.shell: "crm_mon -1 | awk '/Current DC:/ {print $3}'"
+  ansible.builtin.shell: "crm_mon -1 | awk '/Current DC:/ {print $4}'"
   register: active_node_cmd
   changed_when: false
 
