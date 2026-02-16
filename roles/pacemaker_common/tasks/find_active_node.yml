@@ -28,3 +28,7 @@
     pacemaker_local_name: "{{ local_node_name_cmd.stdout }}"
     # Evaluates to 'true' only if this node is the active DC
     is_active_node: "{{ local_node_name_cmd.stdout == active_node_cmd.stdout }}"
+
+- name: "5. Debug: Print Active Node and Local Node Names"
+  ansible.builtin.debug:
+    msg: "Active Cluster Node: {{ active_cluster_node }}, Local Node Name: {{ pacemaker_local_name }}, Is Active Node: {{ is_active_node }}"
