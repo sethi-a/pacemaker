@@ -3,45 +3,47 @@
   run_once: true
   delegate_to: localhost
   block:
-    - name: Build Executive Report
-      ansible.builtin.set_fact:
+    # -------------------------------------------------------------------
+    # STEP 1: SAFEGUARD - ENSURE WE HAVE A NODE FOR GLOBAL DATA
+    # -------------------------------------------------------------------
+    - name: "Reporting: Determine the Global Reporting Node"
+      set_fact:
+        # The 'true' flag ensures that if active_cluster_node is an empty string (""), 
+        # it still falls back to the first available host.
+        report_node: "{{ active_cluster_node | default(ansible_play_hosts[0], true) }}"
+
+    # -------------------------------------------------------------------
+    # STEP 2: PRE-PROCESS DATA (No more messy logic inside the text block)
+    # -------------------------------------------------------------------
+    - name: "Reporting: Extract Global Errors and Status"
+      set_fact:
+        # Use Regex to cleanly grab ONLY Sections 4 through 8 for global issues
+        global_issues: "{{ hostvars[report_node].health_check_errors | default([]) | select('search', 'SECTION [45678]') | list }}"
+        
+        # Safely get the snapshot, with a helpful error if Section 09 was skipped
+        cluster_snapshot: "{{ hostvars[report_node].cluster_status_output | default('Status not captured. (Check if Section 09 failed or skipped on ' ~ report_node ~ ')') }}"
+
+    # -------------------------------------------------------------------
+    # STEP 3: BUILD THE REPORT TEXT
+    # -------------------------------------------------------------------
+    - name: Build Executive Report String
+      set_fact:
         final_report: |
           =============================================================
           PACEMAKER CLUSTER HEALTH SUMMARY
           =============================================================
           Timestamp: {{ ansible_date_time.iso8601 }}
-          Nodes Checked: {{ groups['pacemaker_cluster'] | length }}
-          
-          -------------------------------------------------------------
-          SCOPE OF CHECKS (LEGEND)
-          -------------------------------------------------------------
-          [ Local Node Checks ]
-            1. Required Variables     2. Service Status (Systemd)
-            3. Configuration Files
-          
-          [ Global Cluster Checks ]
-            4. Node Health (PCS)      5. Cluster Properties
-            6. Stonith Configuration  7. Failed Resource Actions
-            8. Fencing History        9. Split Brain Detection
-            10. Cluster Status Output
+          Nodes Checked: {{ groups['cluster_nodes'] | length }}
           
           -------------------------------------------------------------
           LOCAL NODE CHECKS (Sections 1-3)
           -------------------------------------------------------------
-          {% for host in groups['pacemaker_cluster'] %}
-          {%- set host_vars = hostvars[host] | default({}) -%}
-          {%- set host_errors = host_vars.get('health_check_errors', []) -%}
-          {%- set local_issues = [] -%}
-          {%- if host_errors is iterable -%}
-            {%- for err in host_errors -%}
-              {%- if 'SECTION 1' in err or 'SECTION 2' in err or 'SECTION 3' in err -%}
-                {{- local_issues.append(err) -}}
-              {%- endif -%}
-            {%- endfor -%}
-          {%- endif -%}
+          {% for host in groups['cluster_nodes'] %}
+          {%- set host_errors = hostvars[host].health_check_errors | default([]) -%}
+          {%- set local_issues = host_errors | select('search', 'SECTION [123]') | list -%}
           {% if host not in ansible_play_hosts -%}
           [ CRITICAL ] {{ host }} 
-             DETAILS: Node Unreachable / SSH Failure
+             - DETAILS: Node Unreachable / SSH Failure
           {% elif local_issues | length > 0 -%}
           [ FAILED ]   {{ host }}
           {% for issue in local_issues -%}
@@ -51,20 +53,12 @@
           [ OK ]       {{ host }}
           {% endif -%}
           {% endfor %}
-
+          
           -------------------------------------------------------------
-          GLOBAL CLUSTER HEALTH (Sections 4-9)
+          GLOBAL CLUSTER HEALTH (Sections 4-8)
           -------------------------------------------------------------
-          {% set primary_node = active_cluster_node | default(ansible_play_hosts[0]) -%}
-          {%- set primary_vars = hostvars[primary_node] | default({}) -%}
-          {%- set all_errors = primary_vars.get('health_check_errors', []) -%}
-          {%- set cluster_snapshot = primary_vars.get('cluster_status_output', 'Status not captured.') -%}
-          {%- set global_issues = [] -%}
-          {%- for err in all_errors -%}
-            {%- if 'SECTION 4' in err or 'SECTION 5' in err or 'SECTION 6' in err or 'SECTION 7' in err or 'SECTION 8' in err or 'SECTION 9' in err -%}
-              {{- global_issues.append(err) -}}
-            {%- endif -%}
-          {%- endfor -%}
+          Checked via Node: {{ report_node }}
+          
           {% if global_issues | length == 0 -%}
           STATUS: [ OK ] - Cluster properties and status look healthy.
           {% else -%}
@@ -76,20 +70,23 @@
           {% endif %}
           
           -------------------------------------------------------------
-          CURRENT CLUSTER STATUS SNAPSHOT (Section 10)
+          CURRENT CLUSTER STATUS SNAPSHOT (Section 9)
           -------------------------------------------------------------
           {{ cluster_snapshot }}
           =============================================================
 
+    # -------------------------------------------------------------------
+    # STEP 4: EVALUATE FAILURE & ALERT
+    # -------------------------------------------------------------------
     - name: Set Cluster Failure Flag
-      ansible.builtin.set_fact:
-        cluster_has_failures: "{{ 'STATUS: [ FAILED ]' in final_report or 'CRITICAL' in final_report }}"
+      set_fact:
+        cluster_has_failures: "{{ 'STATUS: [ FAILED ]' in final_report or 'CRITICAL' in final_report or '[ FAILED ]' in final_report }}"
 
     - name: "PRINT SUMMARY REPORT"
-      ansible.builtin.debug:
+      debug:
         msg: "{{ final_report.split('\n') }}"
 
     - name: Fail Playbook if Critical Errors Exist
-      ansible.builtin.fail:
+      fail:
         msg: "Cluster Health Check Failed. See Report above."
       when: cluster_has_failures | bool
