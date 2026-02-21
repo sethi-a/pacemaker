@@ -4,7 +4,7 @@
     - name: "Execute Move back to {{ recovery_item.from_node }}"
       command: "crm_resource --resource {{ recovery_item.resource }} -M --node {{ recovery_item.from_node }}"
 
-    - name: "Wait for restoration"
+    - name: "Wait for restoration on {{ recovery_item.from_node }}"
       shell: "crm_resource --resource {{ recovery_item.resource }} --locate | grep {{ recovery_item.from_node }}"
       register: restore_check
       until: "recovery_item.from_node in restore_check.stdout"
@@ -14,16 +14,29 @@
     - name: "Clear ban on original node"
       command: "crm_resource --resource {{ recovery_item.resource }} --unmove --node {{ recovery_item.from_node }}"
 
-    - name: "Update summary to Rollback status"
+    - name: "Update summary to reflect Rollback Success"
       set_fact:
         migration_summary: >-
-          {{
-            migration_summary | map('combine', {'notes': 'SUCCESSFULLY ROLLED BACK'} if item.resource == recovery_item.resource else item) | list
-          }}
+          {% set new_list = [] %}
+          {% for item in migration_summary %}
+            {% if item.resource == recovery_item.resource %}
+              {% set _ = new_list.append(item | combine({'status': 'ROLLED_BACK', 'notes': 'Successfully reverted to original node'})) %}
+            {% else %}
+              {% set _ = new_list.append(item) %}
+            {% endif %}
+          {% endfor %}
+          {{ new_list }}
+
   rescue:
-    - name: "Update summary to Rollback Failure"
+    - name: "Update summary to reflect Rollback Failure"
       set_fact:
         migration_summary: >-
-          {{
-            migration_summary | map('combine', {'notes': 'ROLLBACK ATTEMPT FAILED - MANUAL ACTION REQUIRED'} if item.resource == recovery_item.resource else item) | list
-          }}
+          {% set new_list = [] %}
+          {% for item in migration_summary %}
+            {% if item.resource == recovery_item.resource %}
+              {% set _ = new_list.append(item | combine({'status': 'ROLLBACK_FAILED', 'notes': 'CRITICAL: Failed to return to original node'})) %}
+            {% else %}
+              {% set _ = new_list.append(item) %}
+            {% endif %}
+          {% endfor %}
+          {{ new_list }}
