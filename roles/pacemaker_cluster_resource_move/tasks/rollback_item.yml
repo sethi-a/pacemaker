@@ -1,0 +1,28 @@
+- name: "Rollback: {{ recovery_item.resource }}"
+  block:
+    - name: "Execute Rollback Move for {{ recovery_item.resource }}"
+      command: "crm_resource --resource {{ recovery_item.resource }} -M --node {{ recovery_item.from_node }}"
+
+    - name: "Wait for restoration on {{ recovery_item.from_node }}"
+      shell: "crm_resource --resource {{ recovery_item.resource }} --locate | grep {{ recovery_item.from_node }}"
+      register: restore_check
+      until: "recovery_item.from_node in restore_check.stdout"
+      retries: "{{ (move_timeout / 5) | int }}"
+      delay: 5
+
+    - name: "Clear ban on original node"
+      command: "crm_resource --resource {{ recovery_item.resource }} --unmove --node {{ recovery_item.from_node }}"
+
+    - name: "Update summary to Rollback status"
+      set_fact:
+        migration_summary: >-
+          {{
+            migration_summary | map('combine', {'notes': 'SUCCESSFULLY ROLLED BACK'} if item.resource == recovery_item.resource else {}) | list
+          }}
+  rescue:
+    - name: "Update summary to Rollback Failure"
+      set_fact:
+        migration_summary: >-
+          {{
+            migration_summary | map('combine', {'notes': 'ROLLBACK ATTEMPT FAILED'} if item.resource == recovery_item.resource else {}) | list
+          }}
