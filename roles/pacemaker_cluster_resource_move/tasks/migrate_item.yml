@@ -8,6 +8,10 @@
   set_fact:
     src_node: "{{ locate_output.stdout.split(':')[-1] | trim }}"
 
+- name: Print source node for debugging
+  debug:
+    msg: "Current node for {{ current_item.name }} is {{ src_node }} and target node is {{ target_node }}"
+
 - name: "Migration Block for {{ current_item.name }}"
   block:
     - name: "Execute Move for {{ current_item.name }}"
