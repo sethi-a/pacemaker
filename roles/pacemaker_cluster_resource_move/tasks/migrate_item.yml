@@ -27,7 +27,7 @@
       retries: "{{ (move_timeout / 5) | int }}"
       delay: 5
 
-    - name: "Clear ban (unmove)"
+    - name: "Clear ban on {{ target_node }}"
       command: "crm_resource --resource {{ current_item.name }} --clear --node {{ target_node }}"
 
     - name: "Log MIGRATED"
