@@ -30,7 +30,7 @@
 
     - name: "Clear ban (unmove) ONLY if move was successful"
       # Using unmove to clear the temporary constraint
-      command: "crm_resource --resource {{ current_item.name }} --unmove --node {{ target_node }}"
+      command: "crm_resource --resource {{ current_item.name }} --un-move --node {{ target_node }}"
       when: 
         - move_confirmed | bool
         - migration_initiated is not skipped
