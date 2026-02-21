@@ -47,12 +47,12 @@
       set_fact:
         rollback_triggered: true
 
-    - name: GLOBAL ROLLBACK - Reverting Successful Moves
+    - name: GLOBAL ROLLBACK - Reverting MIGRATED Moves
       include_tasks: rollback_item.yml
       loop: "{{ migration_summary }}"
       loop_control:
         loop_var: recovery_item
-      when: recovery_item.status == 'SUCCESS'
+      when: recovery_item.status == 'MIGRATED'
 
   always:
     - name: "FINAL MIGRATION REPORT"
@@ -61,9 +61,9 @@
           ============================================
                 CLUSTER RESOURCE MIGRATION REPORT     
           ============================================
-          Target Node: {{ target_node }}
+          Target Node:   {{ target_node }}
           Final Outcome: {{ 'FAILED - ROLLED BACK' if rollback_triggered else 'SUCCESS' }}
-          Timestamp: {{ ansible_date_time.iso8601 }}
+          Timestamp:     {{ ansible_date_time.iso8601 }}
           --------------------------------------------
           {% for r in migration_summary %}
           Resource: {{ r.resource }}
@@ -75,18 +75,7 @@
       debug:
         msg: "{{ report_content.splitlines() }}"
 
-    - name: Post-Operation Cluster Health Validation
-      shell: "crm_resource --list | grep -E 'unmanaged|blocked|failed'"
-      register: cluster_health_final
-      failed_when: false
-      changed_when: false
-
-    - name: Alert on Unhealthy Post-Op State
-      debug:
-        msg: "CRITICAL: Cluster shows unmanaged or failed resources!"
-      when: cluster_health_final.stdout != ""
-
     - name: Fail Playbook if Errors Occurred
       fail:
-        msg: "Migration failed. Cluster was rolled back to original state."
+        msg: "Migration failed. Services were rolled back."
       when: rollback_triggered | bool

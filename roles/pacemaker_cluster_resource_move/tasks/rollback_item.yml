@@ -1,5 +1,5 @@
 ---
-- name: "Rollback: {{ recovery_item.resource }} to {{ recovery_item.from_node }}"
+- name: "Rollback: {{ recovery_item.resource }} back to {{ recovery_item.from_node }}"
   block:
     - name: "Execute Move back to {{ recovery_item.from_node }}"
       command: "crm_resource --resource {{ recovery_item.resource }} -M --node {{ recovery_item.from_node }}"
@@ -12,6 +12,7 @@
       delay: 5
 
     - name: "Clear ban on original node"
+      # This restores the cluster to its original failover policy
       command: "crm_resource --resource {{ recovery_item.resource }} --un-move --node {{ recovery_item.from_node }}"
 
     - name: "Update summary to reflect Rollback Success"

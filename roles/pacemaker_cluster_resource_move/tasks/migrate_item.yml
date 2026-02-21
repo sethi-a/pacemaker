@@ -1,5 +1,5 @@
 ---
-- name: "Identify current node for {{ current_item.name }}"
+- name: "Locate {{ current_item.name }}"
   command: "crm_resource --resource {{ current_item.name }} --locate"
   register: locate_output
   changed_when: false
@@ -8,43 +8,35 @@
   set_fact:
     src_node: "{{ locate_output.stdout.split(':')[-1] | trim }}"
 
-- name: Print source node for debugging
-  debug:
-    msg: "Current node for {{ current_item.name }} is {{ src_node }} and target node is {{ target_node }}"
+- name: "Handle No Move Required"
+  set_fact:
+    migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'SKIPPED', 'from_node': src_node, 'notes': 'Resource is already on target'}] }}"
+  when: src_node == target_node
 
-- name: "Migration Block for {{ current_item.name }}"
+- name: "Migration Block"
+  when: src_node != target_node
   block:
-    - name: "Execute Move for {{ current_item.name }}"
+    - name: "Move {{ current_item.name }} to {{ target_node }}"
       command: "crm_resource --resource {{ current_item.name }} -M --node {{ target_node }}"
       register: migration_initiated
-      when: src_node != target_node
 
-    - name: "Wait for {{ current_item.name }} to reach Started state on {{ target_node }}"
+    - name: "Wait for Start"
       shell: "crm_resource --resource {{ current_item.name }} --locate | grep {{ target_node }}"
       register: status_check
       until: "target_node in status_check.stdout"
       retries: "{{ (move_timeout / 5) | int }}"
       delay: 5
 
-    - name: "Set success flag"
-      set_fact:
-        move_confirmed: "{{ target_node in status_check.stdout }}"
-
-    - name: "Clear ban (unmove) for {{ current_item.name }}"
+    - name: "Clear ban (unmove)"
       command: "crm_resource --resource {{ current_item.name }} --un-move --node {{ target_node }}"
-      when: 
-        - move_confirmed | bool
-        - migration_initiated is not skipped
 
-    - name: "Log SUCCESS for {{ current_item.name }}"
+    - name: "Log MIGRATED"
       set_fact:
-        migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'SUCCESS', 'from_node': src_node, 'notes': 'Verified on target and unmove completed'}] }}"
+        migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'MIGRATED', 'from_node': src_node, 'notes': 'Successfully moved'}] }}"
 
   rescue:
-    - name: "Log FAILURE for {{ current_item.name }}"
+    - name: "Log FAILURE"
       set_fact:
-        migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'FAILED', 'from_node': src_node, 'notes': 'Move failed. Triggering Global Rollback.'}] }}"
-
-    - name: "Force trigger of global rollback"
-      fail:
-        msg: "Aborting migration loop due to failure of {{ current_item.name }}"
+        migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'FAILED', 'from_node': src_node, 'notes': 'Move failed. Rolling back...'}] }}"
+    - fail:
+        msg: "Terminating for rollback."
