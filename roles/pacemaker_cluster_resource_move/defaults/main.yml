@@ -2,3 +2,5 @@
 target_node: "nodez02n04"
 move_timeout: 120
 audit_log_path: "./logs"
+cluster_migration_list:
+  - { name: "grp_AW1_ASCS35", type: "group" }
