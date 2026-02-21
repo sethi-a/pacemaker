@@ -28,7 +28,7 @@
       delay: 5
 
     - name: "Clear ban (unmove)"
-      command: "crm_resource --resource {{ current_item.name }} --un-move --node {{ target_node }}"
+      command: "crm_resource --resource {{ current_item.name }} --clear --node {{ target_node }}"
 
     - name: "Log MIGRATED"
       set_fact:

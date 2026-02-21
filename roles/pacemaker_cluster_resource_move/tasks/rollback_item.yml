@@ -13,7 +13,7 @@
 
     - name: "Clear ban on original node"
       # This restores the cluster to its original failover policy
-      command: "crm_resource --resource {{ recovery_item.resource }} --un-move --node {{ recovery_item.from_node }}"
+      command: "crm_resource --resource {{ recovery_item.resource }} --clear --node {{ recovery_item.from_node }}"
 
     - name: "Update summary to reflect Rollback Success"
       set_fact:
