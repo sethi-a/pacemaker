@@ -1,3 +1,4 @@
+---
 - name: "Identify current node for {{ current_item.name }}"
   command: "crm_resource --resource {{ current_item.name }} --locate"
   register: locate_output
@@ -21,18 +22,24 @@
       retries: "{{ (move_timeout / 5) | int }}"
       delay: 5
 
+    - name: "Set success flag"
+      set_fact:
+        move_confirmed: "{{ target_node in status_check.stdout }}"
+
     - name: "Clear ban (unmove) for {{ current_item.name }}"
       command: "crm_resource --resource {{ current_item.name }} --unmove --node {{ target_node }}"
-      when: migration_initiated is not skipped
+      when: 
+        - move_confirmed | bool
+        - migration_initiated is not skipped
 
     - name: "Log SUCCESS for {{ current_item.name }}"
       set_fact:
-        migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'SUCCESS', 'from_node': src_node, 'notes': 'Verified on target'}] }}"
+        migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'SUCCESS', 'from_node': src_node, 'notes': 'Verified on target and unmove completed'}] }}"
 
   rescue:
     - name: "Log FAILURE for {{ current_item.name }}"
       set_fact:
-        migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'FAILED', 'from_node': src_node, 'notes': 'Move failed. Triggering Rollback.'}] }}"
+        migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'FAILED', 'from_node': src_node, 'notes': 'Move failed. Triggering Global Rollback.'}] }}"
 
     - name: "Force trigger of global rollback"
       fail:

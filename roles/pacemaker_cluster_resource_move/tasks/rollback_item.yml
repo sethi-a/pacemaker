@@ -1,9 +1,10 @@
-- name: "Rollback: {{ recovery_item.resource }}"
+---
+- name: "Rollback: {{ recovery_item.resource }} to {{ recovery_item.from_node }}"
   block:
-    - name: "Execute Rollback Move for {{ recovery_item.resource }}"
+    - name: "Execute Move back to {{ recovery_item.from_node }}"
       command: "crm_resource --resource {{ recovery_item.resource }} -M --node {{ recovery_item.from_node }}"
 
-    - name: "Wait for restoration on {{ recovery_item.from_node }}"
+    - name: "Wait for restoration"
       shell: "crm_resource --resource {{ recovery_item.resource }} --locate | grep {{ recovery_item.from_node }}"
       register: restore_check
       until: "recovery_item.from_node in restore_check.stdout"
@@ -17,12 +18,12 @@
       set_fact:
         migration_summary: >-
           {{
-            migration_summary | map('combine', {'notes': 'SUCCESSFULLY ROLLED BACK'} if item.resource == recovery_item.resource else {}) | list
+            migration_summary | map('combine', {'notes': 'SUCCESSFULLY ROLLED BACK'} if item.resource == recovery_item.resource else item) | list
           }}
   rescue:
     - name: "Update summary to Rollback Failure"
       set_fact:
         migration_summary: >-
           {{
-            migration_summary | map('combine', {'notes': 'ROLLBACK ATTEMPT FAILED'} if item.resource == recovery_item.resource else {}) | list
+            migration_summary | map('combine', {'notes': 'ROLLBACK ATTEMPT FAILED - MANUAL ACTION REQUIRED'} if item.resource == recovery_item.resource else item) | list
           }}

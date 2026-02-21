@@ -1,6 +1,7 @@
+---
 - name: Managed Pacemaker Cluster Migration
   block:
-    - name: Initialize Tracking
+    - name: Initialize Tracking Facts
       set_fact:
         migration_summary: []
         rollback_triggered: false
@@ -13,11 +14,11 @@
       when: not rollback_triggered
 
   rescue:
-    - name: "GLOBAL ROLLBACK INITIATED"
+    - name: Set Rollback State
       set_fact:
         rollback_triggered: true
 
-    - name: "Revert successful moves to original nodes"
+    - name: GLOBAL ROLLBACK - Reverting Successful Moves
       include_tasks: rollback_item.yml
       loop: "{{ migration_summary }}"
       loop_control:
@@ -26,34 +27,37 @@
 
   always:
     - name: "FINAL MIGRATION REPORT"
-      debug:
-        msg: 
-          - "============================================"
-          - "      CLUSTER RESOURCE MIGRATION REPORT     "
-          - "============================================"
-          - "Target Node: {{ target_node }}"
-          - "Outcome: {{ 'FAILED - ROLLED BACK' if rollback_triggered else 'SUCCESS' }}"
-          - "--------------------------------------------"
+      vars:
+        report_content: |
+          ============================================
+                CLUSTER RESOURCE MIGRATION REPORT     
+          ============================================
+          Target Node: {{ target_node }}
+          Final Outcome: {{ 'FAILED - ROLLED BACK' if rollback_triggered else 'SUCCESS' }}
+          Timestamp: {{ ansible_date_time.iso8601 }}
+          --------------------------------------------
           {% for r in migration_summary %}
-          - "Resource: {{ r.resource }}"
-          - "Status:   {{ r.status }}"
-          - "Notes:    {{ r.notes }}"
-          - "--------------------------------------------"
+          Resource: {{ r.resource }}
+          Status:   {{ r.status }}
+          From:     {{ r.from_node }}
+          Notes:    {{ r.notes }}
+          --------------------------------------------
           {% endfor %}
+      debug:
+        msg: "{{ report_content.splitlines() }}"
 
     - name: Post-Operation Cluster Health Validation
-      # Ensures no resources are in 'unmanaged' or 'blocked' states
       shell: "crm_resource --list | grep -E 'unmanaged|blocked|failed'"
       register: cluster_health_final
       failed_when: false
       changed_when: false
 
-    - name: Report Post-Op Health
+    - name: Alert on Unhealthy Post-Op State
       debug:
-        msg: "WARNING: Cluster shows unmanaged or failed resources post-operation!"
+        msg: "CRITICAL: Cluster shows unmanaged or failed resources!"
       when: cluster_health_final.stdout != ""
 
-    - name: Exit with Failure if Rollback occurred
+    - name: Fail Playbook if Errors Occurred
       fail:
-        msg: "Playbook failed. Services were rolled back to maintain integrity."
+        msg: "Migration failed. Cluster was rolled back to original state."
       when: rollback_triggered | bool
