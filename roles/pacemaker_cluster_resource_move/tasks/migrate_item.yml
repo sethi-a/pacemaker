@@ -1,4 +1,5 @@
-- name: "Identify {{ current_item.name }} current node"
+- name: "Identify current node for {{ current_item.name }}"
+  # Using the binary directly to locate the resource
   command: "crm_resource --resource {{ current_item.name }} --locate"
   register: locate_output
   changed_when: false
@@ -7,35 +8,46 @@
   set_fact:
     src_node: "{{ locate_output.stdout.split(':')[-1] | trim }}"
 
-- name: "Migrate {{ current_item.name }}"
+- name: "Migration Block for {{ current_item.name }}"
   block:
-    - name: "Move resource to {{ target_node }}"
-      command: "crm_resource migrate {{ current_item.name }} {{ target_node }}"
+    - name: "Execute Move for {{ current_item.name }}"
+      # Using crm_resource -M to move to the target node
+      command: "crm_resource --resource {{ current_item.name }} -M --node {{ target_node }}"
+      register: migration_initiated
       when: src_node != target_node
 
-    - name: "Wait for {{ current_item.name }} to stabilize"
-      shell: "crm resource status {{ current_item.name }} | grep {{ target_node }}"
+    - name: "Wait for {{ current_item.name }} to reach Started state on {{ target_node }}"
+      # Checking status using the binary
+      shell: "crm_resource --resource {{ current_item.name }} --locate | grep {{ target_node }}"
       register: status_check
-      until: "'Started' in status_check.stdout"
+      until: "target_node in status_check.stdout"
       retries: "{{ (move_timeout / 5) | int }}"
       delay: 5
 
-    - name: "Clear migration ban"
-      command: "crm_resource unmigrate {{ current_item.name }}"
+    - name: "Set success flag"
+      set_fact:
+        move_confirmed: "{{ target_node in status_check.stdout }}"
+
+    - name: "Clear ban (unmove) ONLY if move was successful"
+      # Using unmove to clear the temporary constraint
+      command: "crm_resource --resource {{ current_item.name }} --unmove --node {{ target_node }}"
+      when: 
+        - move_confirmed | bool
+        - migration_initiated is not skipped
 
     - name: "Record success"
       set_fact:
-        migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'SUCCESS', 'from_node': src_node, 'notes': 'Moved successfully'}] }}"
+        migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'SUCCESS', 'from_node': src_node, 'notes': 'Resource verified on target and unmove completed.'}] }}"
 
   rescue:
-    - name: "Emergency Rollback for {{ current_item.name }}"
-      command: "crm_resource migrate {{ current_item.name }} {{ src_node }}"
-      ignore_errors: yes
+    - name: "Set failure flag"
+      set_fact:
+        move_confirmed: false
 
-    - name: "Cleanup resource state"
-      command: "crm_resource cleanup {{ current_item.name }}"
+    - name: "Attempt Emergency Cleanup"
+      command: "crm_resource --resource {{ current_item.name }} --cleanup"
       ignore_errors: yes
 
     - name: "Record failure"
       set_fact:
-        migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'FAILED', 'from_node': src_node, 'notes': 'Failed migration. Rollback/Cleanup attempted.'}] }}"
+        migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'FAILED', 'from_node': src_node, 'notes': 'Failed to reach target. Cleanup triggered.'}] }}"
