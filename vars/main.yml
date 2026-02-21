@@ -1,0 +1,6 @@
+target_node: "nodez03n04"
+move_timeout: 300
+audit_log_path: "./migration_reports"
+
+cluster_migration_list:
+  - { name: "grp_AW1_ASCS35", type: "group" }

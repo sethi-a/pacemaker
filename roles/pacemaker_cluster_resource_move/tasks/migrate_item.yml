@@ -1,0 +1,41 @@
+- name: "Identify {{ current_item.name }} current node"
+  command: "crm_resource --resource {{ current_item.name }} --locate"
+  register: locate_output
+  changed_when: false
+
+- name: "Set source node fact"
+  set_fact:
+    src_node: "{{ locate_output.stdout.split(':')[-1] | trim }}"
+
+- name: "Migrate {{ current_item.name }}"
+  block:
+    - name: "Move resource to {{ target_node }}"
+      command: "crm resource migrate {{ current_item.name }} {{ target_node }}"
+      when: src_node != target_node
+
+    - name: "Wait for {{ current_item.name }} to stabilize"
+      shell: "crm resource status {{ current_item.name }} | grep {{ target_node }}"
+      register: status_check
+      until: "'Started' in status_check.stdout"
+      retries: "{{ (move_timeout / 5) | int }}"
+      delay: 5
+
+    - name: "Clear migration ban"
+      command: "crm resource unmigrate {{ current_item.name }}"
+
+    - name: "Record success"
+      set_fact:
+        migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'SUCCESS', 'from_node': src_node, 'notes': 'Moved successfully'}] }}"
+
+  rescue:
+    - name: "Emergency Rollback for {{ current_item.name }}"
+      command: "crm resource migrate {{ current_item.name }} {{ src_node }}"
+      ignore_errors: yes
+
+    - name: "Cleanup resource state"
+      command: "crm resource cleanup {{ current_item.name }}"
+      ignore_errors: yes
+
+    - name: "Record failure"
+      set_fact:
+        migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'FAILED', 'from_node': src_node, 'notes': 'Failed migration. Rollback/Cleanup attempted.'}] }}"
