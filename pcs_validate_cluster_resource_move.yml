@@ -1,0 +1,10 @@
+- name: Pacemaker Cluster Opertions
+  hosts: pacemaker_cluster  # MUST TARGET ALL NODES
+  become: true
+  gather_facts: true
+  
+  roles:
+    - role: pacemaker_cluster_resouce_move
+
+    # - role: pacemaker_cluster_backup
+    #   when: inventory_hostname == active_cluster_node
