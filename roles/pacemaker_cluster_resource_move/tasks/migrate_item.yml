@@ -27,7 +27,7 @@
         move_confirmed: "{{ target_node in status_check.stdout }}"
 
     - name: "Clear ban (unmove) for {{ current_item.name }}"
-      command: "crm_resource --resource {{ current_item.name }} --unmove --node {{ target_node }}"
+      command: "crm_resource --resource {{ current_item.name }} --un-move --node {{ target_node }}"
       when: 
         - move_confirmed | bool
         - migration_initiated is not skipped
