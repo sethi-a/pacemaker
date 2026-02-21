@@ -1,4 +1,4 @@
 # Fallback defaults if not defined in vars
-target_node: "nodez03n04"
+target_node: "nodez02n04"
 move_timeout: 120
 audit_log_path: "./logs"

@@ -37,7 +37,7 @@
       changed_when: false
 
     - name: Verify target node is a cluster member
-      shell: "crm node status {{ target_node }} | grep -q 'member'"
+      shell: "crm_node -l | grep -q '{{ target_node }}'"
       changed_when: false
   rescue:
     - fail:
