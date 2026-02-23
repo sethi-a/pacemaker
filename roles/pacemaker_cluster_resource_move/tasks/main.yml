@@ -66,9 +66,10 @@
     - name: "CAPTURE LIVE CLUSTER STATUS"
       # We use 'crm_resource --list' if crm status is unavailable
       # It provides a clean list of all resources and their current nodes
-      shell: "crm_resource --list"
+      shell: "crm_mon -1"
       register: live_status
       changed_when: false
+      ignore_errors: true
 
     - name: "PRINT LIVE CLUSTER STATUS"
       debug:
