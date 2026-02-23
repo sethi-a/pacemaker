@@ -33,26 +33,14 @@
     - name: Initialize Tracking Facts
       set_fact:
         migration_summary: []
-        rollback_triggered: false
+        stop_loop: false
 
     - name: Execute Migration Loop
       include_tasks: migrate_item.yml
       loop: "{{ cluster_migration_list }}"
       loop_control:
         loop_var: current_item
-      when: not rollback_triggered
-
-  rescue:
-    - name: Set Rollback State
-      set_fact:
-        rollback_triggered: true
-
-    - name: GLOBAL ROLLBACK - Reverting MIGRATED Moves
-      include_tasks: rollback_item.yml
-      loop: "{{ migration_summary }}"
-      loop_control:
-        loop_var: recovery_item
-      when: recovery_item.status == 'MIGRATED'
+      when: not stop_loop
 
   always:
     - name: "FINAL MIGRATION REPORT"
@@ -62,7 +50,7 @@
                 CLUSTER RESOURCE MIGRATION REPORT     
           ============================================
           Target Node:   {{ target_node }}
-          Final Outcome: {{ 'FAILED - ROLLED BACK' if rollback_triggered else 'SUCCESS' }}
+          Final Status:  {{ 'COMPLETED WITH ERRORS' if stop_loop else 'SUCCESS' }}
           Timestamp:     {{ ansible_date_time.iso8601 }}
           --------------------------------------------
           {% for r in migration_summary %}
@@ -77,5 +65,5 @@
 
     - name: Fail Playbook if Errors Occurred
       fail:
-        msg: "Migration failed. Services were rolled back."
-      when: rollback_triggered | bool
+        msg: "Migration interrupted due to resource failure. See report above for details."
+      when: stop_loop | bool

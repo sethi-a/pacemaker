@@ -1,5 +1,5 @@
 ---
-- name: "Locate {{ current_item.name }}"
+- name: "Identify current node for {{ current_item.name }}"
   command: "crm_resource --resource {{ current_item.name }} --locate"
   register: locate_output
   changed_when: false
@@ -8,35 +8,34 @@
   set_fact:
     src_node: "{{ locate_output.stdout.split(':')[-1] | trim }}"
 
-- name: "Handle No Move Required"
+- name: "Handle Already on Target"
   set_fact:
-    migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'SKIPPED', 'from_node': src_node, 'notes': 'Resource is already on target'}] }}"
+    migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'SKIPPED', 'from_node': src_node, 'notes': 'Resource already on ' + target_node}] }}"
   when: src_node == target_node
 
 - name: "Migration Block"
   when: src_node != target_node
   block:
-    - name: "Move {{ current_item.name }} to {{ target_node }}"
+    - name: "Migrate {{ current_item.name }} to {{ target_node }}"
       command: "crm_resource --resource {{ current_item.name }} -M --node {{ target_node }}"
-      register: migration_initiated
 
-    - name: "Wait for Start"
+    - name: "Wait for {{ current_item.name }} to Start"
       shell: "crm_resource --resource {{ current_item.name }} --locate | grep {{ target_node }}"
       register: status_check
       until: "target_node in status_check.stdout"
       retries: "{{ (move_timeout / 5) | int }}"
       delay: 5
 
-    - name: "Clear ban on {{ target_node }}"
+    - name: "Clear move constraint (Make migration permanent)"
+      # FIXED: Using --clear as required by crm_resource binary
       command: "crm_resource --resource {{ current_item.name }} --clear --node {{ target_node }}"
 
-    - name: "Log MIGRATED"
+    - name: "Log SUCCESS"
       set_fact:
-        migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'MIGRATED', 'from_node': src_node, 'notes': 'Successfully moved'}] }}"
+        migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'MIGRATED', 'from_node': src_node, 'notes': 'Successfully moved to ' + target_node}] }}"
 
   rescue:
     - name: "Log FAILURE"
       set_fact:
-        migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'FAILED', 'from_node': src_node, 'notes': 'Move failed. Rolling back...'}] }}"
-    - fail:
-        msg: "Terminating for rollback."
+        migration_summary: "{{ migration_summary + [{'resource': current_item.name, 'status': 'FAILED', 'from_node': src_node, 'notes': 'Move failed or timed out. Manual intervention required.'}] }}"
+        stop_loop: true
