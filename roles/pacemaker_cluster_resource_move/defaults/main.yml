@@ -1,5 +1,5 @@
 # Fallback defaults if not defined in vars
-target_node: "nodez02n04"
+target_node: "nodez01n01"
 move_timeout: 120
 audit_log_path: "./logs"
 cluster_migration_list:
